@@ -1,6 +1,7 @@
 #include "Simulator.hpp"
 #include <iostream>
 #include <algorithm>
+#include <set>
 #include <ctime>
 
 using namespace boost;
@@ -87,7 +88,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
 
     // init transaction list
-    std::vector<Transaction> transaction_list;
+    std::vector<Transaction> transactionList;
     for (const auto& inputName : parser.module.inputs) {
         std::vector<boost::tribool> inputVector = stimuli.at(inputName);
         Transaction prev_transaction{inputName, !inputVector[0], 0};
@@ -98,7 +99,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             }
 
             Transaction t{inputName, tb, stimuli_tick};
-            transaction_list.push_back(t);
+            transactionList.push_back(t);
 
             prev_transaction = t;
             stimuli_tick += periodTick;
@@ -107,10 +108,12 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     }
 
     // simulation loop
-    while (!transaction_list.empty()) {
-        auto it = std::min_element(transaction_list.begin(), transaction_list.end(), [](Transaction i, Transaction j) { return i.tick < j.tick; });
+    long int prevTime = (std::min_element(transactionList.begin(), transactionList.end(), [](Transaction i, Transaction j) { return i.tick < j.tick; }))->tick;
+    std::set<Transaction> sameTimeTransactions;
+    while (!transactionList.empty()) {
+        auto it = std::min_element(transactionList.begin(), transactionList.end(), [](Transaction i, Transaction j) { return i.tick < j.tick; });
         Transaction t = *it;
-        transaction_list.erase(it);
+        transactionList.erase(it);
 
         wireStates[t.wire] = t.value;
 
@@ -145,11 +148,19 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
                 continue;
             }
 
-            transaction_list.push_back(Transaction{outputWire, result, t.tick+delay});
+            transactionList.push_back(Transaction{outputWire, result, t.tick+delay});
         }
 
-        os << "#" << t.tick << "\n";
-        os << toString(t.value) << wireIdMap.at(t.wire) << "\n";
+        if (t.tick != prevTime) {
+            os << "#" << sameTimeTransactions.begin()->tick << "\n";
+            for (auto& tIt : sameTimeTransactions) {
+                os << toString(tIt.value) << wireIdMap.at(tIt.wire) << "\n";
+            }
+            sameTimeTransactions.clear();
+        }
+
+        sameTimeTransactions.insert(t);
+        prevTime = t.tick;
     }
 
 }

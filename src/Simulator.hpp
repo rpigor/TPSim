@@ -11,6 +11,10 @@ struct Transaction {
     std::string wire;
     boost::tribool value;
     long int tick;
+
+    bool operator<(const Transaction& t) const {
+        return std::tie(wire, value.value, tick) < std::tie(t.wire, t.value.value, t.tick);
+    }
 };
 
 class Simulator {
