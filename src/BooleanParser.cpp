@@ -3,13 +3,13 @@
 #include <stdexcept>
 
 BooleanFunction BooleanFunctionVisitor::operator()(const Variable& v) const {
-    return [](const std::vector<bool>& in) {
+    return [](const std::vector<boost::tribool>& in) {
         return in[0];
     };
 }
 
 BooleanFunction BooleanFunctionVisitor::operator()(const UnaryOperation<NotOp>& u) const {
-    auto notFunct = [&](const std::vector<bool>& in) {
+    auto notFunct = [&](const std::vector<boost::tribool>& in) {
         auto res = boost::apply_visitor(*this, u.leftOper)({in[0]});
         return !res;
     };
@@ -17,7 +17,7 @@ BooleanFunction BooleanFunctionVisitor::operator()(const UnaryOperation<NotOp>& 
 }
 
 BooleanFunction BooleanFunctionVisitor::operator()(const BinaryOperation<OrOp>& b) const {
-    auto orFunct = [&](const std::vector<bool>& in) {
+    auto orFunct = [&](const std::vector<boost::tribool>& in) {
         auto leftRes = boost::apply_visitor(*this, b.leftOper)({in[0]});
         auto rightRes = boost::apply_visitor(*this, b.rightOper)({in[1]});
         return leftRes || rightRes;
@@ -26,7 +26,7 @@ BooleanFunction BooleanFunctionVisitor::operator()(const BinaryOperation<OrOp>& 
 }
 
 BooleanFunction BooleanFunctionVisitor::operator()(const BinaryOperation<AndOp>& b) const {
-    auto andFunct = [&](const std::vector<bool>& in) {
+    auto andFunct = [&](const std::vector<boost::tribool>& in) {
         auto leftRes = boost::apply_visitor(*this, b.leftOper)({in[0]});
         auto rightRes = boost::apply_visitor(*this, b.rightOper)({in[1]});
         return leftRes && rightRes;
@@ -35,10 +35,10 @@ BooleanFunction BooleanFunctionVisitor::operator()(const BinaryOperation<AndOp>&
 }
 
 BooleanFunction BooleanFunctionVisitor::operator()(const BinaryOperation<XorOp>& b) const {
-    auto xorFunct = [&](const std::vector<bool>& in) {
+    auto xorFunct = [&](const std::vector<boost::tribool>& in) {
         auto leftRes = boost::apply_visitor(*this, b.leftOper)({in[0]});
         auto rightRes = boost::apply_visitor(*this, b.rightOper)({in[1]});
-        return leftRes ^ rightRes;
+        return (leftRes || rightRes) && !(leftRes && rightRes);
     };
     return xorFunct;
 }

@@ -109,7 +109,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
     // simulation loop
     long int prevTime = (std::min_element(transactionList.begin(), transactionList.end(), [](Transaction i, Transaction j) { return i.tick < j.tick; }))->tick;
-    std::set<Transaction> sameTimeTransactions;
+    std::unordered_map<std::string, std::set<Transaction>> sameTimeTransactions;
     while (!transactionList.empty()) {
         auto it = std::min_element(transactionList.begin(), transactionList.end(), [](Transaction i, Transaction j) { return i.tick < j.tick; });
         Transaction t = *it;
@@ -142,7 +142,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             std::string outputPin = cell.outputs[0];
             std::string outputWire = g.output2net.at(outputPin);
             auto func = getCellOutputFunction(cell.name, outputPin);
-            tribool result = func(toBoolVector(inputStates));
+            tribool result = func(inputStates);
 
             if (wireStates.at(outputWire) == result) {
                 continue;
@@ -152,14 +152,22 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
         }
 
         if (t.tick != prevTime) {
-            os << "#" << sameTimeTransactions.begin()->tick << "\n";
-            for (auto& tIt : sameTimeTransactions) {
-                os << toString(tIt.value) << wireIdMap.at(tIt.wire) << "\n";
+            long int timeIt = sameTimeTransactions.begin()->second.begin()->tick;
+            os << "#" << timeIt << "\n";
+            for (auto& tupIt : sameTimeTransactions) {
+                if (tupIt.second.size() == 1) {
+                    os << toString(tupIt.second.begin()->value) << wireIdMap.at(tupIt.second.begin()->wire) << "\n";
+                }
+                else {
+                    auto tIt = tupIt.second.end();
+                    std::advance(tIt, tIt->value == indeterminate ? -1 : 0);
+                    os << toString(tupIt.second.begin()->value) << wireIdMap.at(tupIt.second.begin()->wire) << "\n";
+                }
             }
             sameTimeTransactions.clear();
         }
 
-        sameTimeTransactions.insert(t);
+        sameTimeTransactions[t.wire].insert(t);
         prevTime = t.tick;
     }
 

@@ -4,6 +4,7 @@
 #include <boost/phoenix.hpp>
 #include <boost/phoenix/operator.hpp>
 #include <boost/variant/recursive_wrapper.hpp>
+#include <boost/logic/tribool.hpp>
 #include <string>
 #include <vector>
 #include <functional>
@@ -101,7 +102,7 @@ private:
 
 };
 
-typedef std::function<bool(const std::vector<bool>&)> BooleanFunction;
+typedef std::function<boost::tribool(const std::vector<boost::tribool>&)> BooleanFunction;
 
 struct BooleanFunctionVisitor : boost::static_visitor<BooleanFunction> {
 
