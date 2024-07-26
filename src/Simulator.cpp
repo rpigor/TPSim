@@ -6,14 +6,7 @@
 
 using namespace boost;
 
-BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, const std::string& output) const {
-    Cell cell = parser.lib.at(cellName);
-    auto outIt = std::find(cell.outputs.begin(), cell.outputs.end(), output);
-    unsigned int outIdx = std::distance(cell.outputs.begin(), outIt);
-    return boost::apply_visitor(BooleanFunctionVisitor(), cellOutputExpressions.at(cell.name)[outIdx]);
-}
-
-std::string Simulator::toString(tribool value) const {
+std::string toString(tribool value) {
     if (indeterminate(value)) {
         return "x";
     } else if (value) {
@@ -23,10 +16,44 @@ std::string Simulator::toString(tribool value) const {
     }
 }
 
-std::vector<bool> Simulator::toBoolVector(const std::vector<tribool>& triboolVec) const {
-    std::vector<bool> boolVec;
-    std::for_each(triboolVec.cbegin(), triboolVec.cend(), [&](tribool tb) { boolVec.push_back(tb ? true : false); });
-    return boolVec;
+VCDBuffer::VCDBuffer() : tick(-1) { }
+
+void VCDBuffer::insert(const Transaction& t) {
+    if (tick != t.tick) {
+        buffer.clear();
+        tick = t.tick;
+    }
+    buffer[t.wire].insert(t.value);
+}
+
+void VCDBuffer::clear() {
+    buffer.clear();
+    tick = -1;
+}
+
+void VCDBuffer::printVCD(std::ostream& os, const std::unordered_map<std::string, char>& wireIdMap) const {
+    os << "#" << tick << "\n";
+    for (auto& tupIt : buffer) {
+        if (tupIt.second.size() == 1) {
+            os << toString(*tupIt.second.begin()) << wireIdMap.at(tupIt.first) << "\n";
+        }
+        else {
+            auto tbIt = std::find_if(tupIt.second.begin(), tupIt.second.end(), [](boost::tribool tb) { return !indeterminate(tb); });
+            if (tbIt != tupIt.second.end()) {
+                os << toString(*tbIt) << wireIdMap.at(tupIt.first) << "\n";
+            }
+            else {
+                os << "x" << wireIdMap.at(tupIt.first) << "\n";
+            }
+        }
+    }
+}
+
+BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, const std::string& output) const {
+    Cell cell = parser.lib.at(cellName);
+    auto outIt = std::find(cell.outputs.begin(), cell.outputs.end(), output);
+    unsigned int outIdx = std::distance(cell.outputs.begin(), outIt);
+    return boost::apply_visitor(BooleanFunctionVisitor(), cellOutputExpressions.at(cell.name)[outIdx]);
 }
 
 Simulator::Simulator(const VerilogParser& parser, std::ostream& os) : parser(parser), os(os) {
@@ -109,7 +136,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
     // simulation loop
     long int prevTime = (std::min_element(transactionList.begin(), transactionList.end(), [](Transaction i, Transaction j) { return i.tick < j.tick; }))->tick;
-    std::unordered_map<std::string, std::set<Transaction>> sameTimeTransactions;
+    VCDBuffer sameTimeTransactions;
     while (!transactionList.empty()) {
         auto it = std::min_element(transactionList.begin(), transactionList.end(), [](Transaction i, Transaction j) { return i.tick < j.tick; });
         Transaction t = *it;
@@ -152,22 +179,10 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
         }
 
         if (t.tick != prevTime) {
-            long int timeIt = sameTimeTransactions.begin()->second.begin()->tick;
-            os << "#" << timeIt << "\n";
-            for (auto& tupIt : sameTimeTransactions) {
-                if (tupIt.second.size() == 1) {
-                    os << toString(tupIt.second.begin()->value) << wireIdMap.at(tupIt.second.begin()->wire) << "\n";
-                }
-                else {
-                    auto tIt = tupIt.second.end();
-                    std::advance(tIt, tIt->value == indeterminate ? -1 : 0);
-                    os << toString(tupIt.second.begin()->value) << wireIdMap.at(tupIt.second.begin()->wire) << "\n";
-                }
-            }
-            sameTimeTransactions.clear();
+            sameTimeTransactions.printVCD(os, wireIdMap);
         }
 
-        sameTimeTransactions[t.wire].insert(t);
+        sameTimeTransactions.insert(t);
         prevTime = t.tick;
     }
 
