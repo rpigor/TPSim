@@ -106,7 +106,13 @@ int main(const int argc, const char* argv[]) {
 
     // parse verilog file
     VerilogParser parser(cellLib);
-    parser.read(verilogFile);
+    try {
+        parser.read(verilogFile);
+    }
+    catch (std::runtime_error& e) {
+        std::cerr << "[ ERROR ] When parsing \'" << verilogFile << "\':\n" << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
 
     // retrieve stimuli
     std::unordered_map<std::string, std::vector<boost::tribool>> stimuli;
