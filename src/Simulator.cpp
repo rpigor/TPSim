@@ -186,4 +186,5 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
         prevTime = t.tick;
     }
 
+    sameTimeTransactions.printVCD(os, wireIdMap);
 }
