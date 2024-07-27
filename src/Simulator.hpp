@@ -20,7 +20,7 @@ struct TriboolComp {
 struct Transaction {
     std::string wire;
     boost::tribool value;
-    long int tick;
+    unsigned long tick;
 
     bool operator<(const Transaction& t) const {
         return std::tie(wire, value.value, tick) < std::tie(t.wire, t.value.value, t.tick);
@@ -30,7 +30,7 @@ struct Transaction {
 class VCDBuffer {
 private:
 
-    long int tick;
+    unsigned long tick;
     std::unordered_map<std::string, std::set<boost::tribool, TriboolComp>> buffer;
 
 public:
@@ -56,7 +56,7 @@ public:
     Simulator(const VerilogParser& parser);
     Simulator(const VerilogParser& parser, std::ostream& os);
 
-    void simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli);
+    void simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit);
 
 private:
 

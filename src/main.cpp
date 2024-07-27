@@ -65,10 +65,11 @@ bool validStimuli(std::unordered_map<std::string, std::vector<boost::tribool>> s
 int main(const int argc, const char* argv[]) {
     po::options_description desc("Arguments");
     desc.add_options()
-        ("help,h",                                              "Show help message")
-        ("verilog,v",   po::value<std::string>()->required(),   "Verilog source file")
-        ("stimuli,s",   po::value<std::string>()->required(),   "Input vector file")
-        ("output,o",    po::value<std::string>(),               "Output VCD file");
+        ("help,h",                                                              "Show help message")
+        ("limit,l",     po::value<unsigned long>()->default_value(ULONG_MAX),   "Simulation time limit")
+        ("verilog,v",   po::value<std::string>()->required(),                   "Verilog source file")
+        ("stimuli,s",   po::value<std::string>()->required(),                   "Input vector file")
+        ("output,o",    po::value<std::string>(),                               "Output VCD file");
 
     po::positional_options_description posDesc;
     posDesc.add("verilog", 1);
@@ -124,8 +125,9 @@ int main(const int argc, const char* argv[]) {
     }
 
     // run simulation
+    unsigned long timeLimit = vm["limit"].as<unsigned long>();
     Simulator sim(parser, *os);
-    sim.simulate(stimuli);
+    sim.simulate(stimuli, timeLimit);
 
     if (vm.count("output")) {
         fileOut.close();

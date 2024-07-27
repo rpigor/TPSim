@@ -89,15 +89,14 @@ Simulator::Simulator(const VerilogParser& parser, std::ostream& os) : parser(par
 
 Simulator::Simulator(const VerilogParser& parser) : Simulator(parser, std::cout) { }
 
-void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli) {
-    const int periodTick = 10;
-    const int delay = 1;
-    long int stimuli_tick = 0;
+void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit) {
+    const unsigned int periodTime = 10;
+    const unsigned int delay = 1;
 
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
     os  << "$version Simulator $end\n"
-        << "$date " << std::put_time(&tm, "%Y/%m/%d %T") << " $end\n"
+        << "$date " << std::put_time(&tm, "%d/%m/%Y %T") << " $end\n"
         << "$timescale 1ps $end\n"
         << "$scope module " << parser.module.name << " $end\n";
 
@@ -113,34 +112,38 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
         << "$enddefinitions $end\n"
         << "$dumpvars\n";
 
-
     // init transaction list
+    unsigned long stimuliTime = 0;
     std::vector<Transaction> transactionList;
     for (const auto& inputName : parser.module.inputs) {
         std::vector<boost::tribool> inputVector = stimuli.at(inputName);
         Transaction prev_transaction{inputName, !inputVector[0], 0};
         for (auto tb : inputVector) {
             if (prev_transaction.value == tb) {
-                stimuli_tick += periodTick;
+                stimuliTime += periodTime;
                 continue;
             }
 
-            Transaction t{inputName, tb, stimuli_tick};
+            Transaction t{inputName, tb, stimuliTime};
             transactionList.push_back(t);
 
             prev_transaction = t;
-            stimuli_tick += periodTick;
+            stimuliTime += periodTime;
         }
-        stimuli_tick = 0;
+        stimuliTime = 0;
     }
 
     // simulation loop
-    long int prevTime = (std::min_element(transactionList.begin(), transactionList.end(), [](Transaction i, Transaction j) { return i.tick < j.tick; }))->tick;
+    unsigned long prevTime = (std::min_element(transactionList.begin(), transactionList.end(), [](Transaction i, Transaction j) { return i.tick < j.tick; }))->tick;
     VCDBuffer sameTimeTransactions;
     while (!transactionList.empty()) {
         auto it = std::min_element(transactionList.begin(), transactionList.end(), [](Transaction i, Transaction j) { return i.tick < j.tick; });
         Transaction t = *it;
         transactionList.erase(it);
+
+        if (t.tick > timeLimit) {
+            break;
+        }
 
         wireStates[t.wire] = t.value;
 
@@ -170,12 +173,12 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             std::string outputWire = g.output2net.at(outputPin);
             auto func = getCellOutputFunction(cell.name, outputPin);
             tribool result = func(inputStates);
-
+            unsigned long resultingTime = t.tick + delay;
             if (wireStates.at(outputWire) == result) {
                 continue;
             }
 
-            transactionList.push_back(Transaction{outputWire, result, t.tick+delay});
+            transactionList.push_back(Transaction{outputWire, result, resultingTime});
         }
 
         if (t.tick != prevTime) {
