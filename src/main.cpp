@@ -22,7 +22,7 @@ std::unordered_map<std::string, std::vector<boost::tribool>> parseStimuliFile(co
     while (std::getline(file, line)) {
         std::size_t pos = line.find('=');
         if (pos == std::string::npos) {
-            throw std::invalid_argument("invalid stimuli syntax: missing character '='");
+            throw std::runtime_error("missing character '='");
         }
 
         std::vector<boost::tribool> inputStim;
@@ -36,7 +36,7 @@ std::unordered_map<std::string, std::vector<boost::tribool>> parseStimuliFile(co
                 break;
             }
             if (c != '0' && c != '1') {
-                throw std::invalid_argument("invalid stimuli syntax: illegal character '" + std::string{c} + "'");
+                throw std::runtime_error("illegal character '" + std::string{c} + "'");
             }
             inputStim.push_back(c == '0' ? false : true);
         }
@@ -119,8 +119,8 @@ int main(const int argc, const char* argv[]) {
     try {
         stimuli = parseStimuliFile(inputVecFile);
     }
-    catch (std::invalid_argument& e) {
-        std::cerr << "[ ERRROR ]" << e.what() << "\n";
+    catch (std::runtime_error& e) {
+        std::cerr << "[ ERRROR ] When parsing \'" << inputVecFile << "\':\n" << e.what() << "\n";
         return EXIT_FAILURE;
     }
 

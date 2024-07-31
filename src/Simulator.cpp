@@ -80,7 +80,7 @@ Simulator::Simulator(const VerilogParser& parser, std::ostream& os) : parser(par
             Expression result;
             bool ok = boost::spirit::qi::phrase_parse(firstIt, lastIt, boolParser, boost::spirit::qi::space, result);
             if (!ok) {
-                throw std::invalid_argument("\'" + boolFunc + "\' is not a valid boolean expression.");
+                throw std::runtime_error("\'" + boolFunc + "\' is not a valid boolean expression.");
             }
             cellOutputExpressions[cellName].push_back(result);
         }
