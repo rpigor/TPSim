@@ -26,7 +26,12 @@ struct std::hash<Arc> {
 };
 
 struct TimingLUT {
-
+    std::vector<double> inputSlope;
+    std::vector<double> outputCapacitance;
+    std::vector<std::vector<double>> fallDelay;
+    std::vector<std::vector<double>> riseDelay;
+    std::vector<std::vector<double>> fallOutputSlope;
+    std::vector<std::vector<double>> riseOutputSlope;
 };
 
 struct Cell {
@@ -35,5 +40,5 @@ struct Cell {
     std::vector<std::string> outputs;
     std::vector<std::string> bitFunctions;
     std::unordered_map<std::string, double> pinCapacitance;
-    std::unordered_map<Arc, TimingLUT> delayAndSlew;
+    std::unordered_map<Arc, TimingLUT> delayAndSlope;
 };
