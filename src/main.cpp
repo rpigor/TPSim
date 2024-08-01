@@ -67,6 +67,7 @@ int main(const int argc, const char* argv[]) {
     desc.add_options()
         ("help,h",                                                              "Show help message")
         ("limit,l",     po::value<unsigned long>()->default_value(ULONG_MAX),   "Simulation time limit")
+        ("period,p",    po::value<unsigned long>()->default_value(10000),       "Input vector clock period")
         ("verilog,v",   po::value<std::string>()->required(),                   "Verilog source file")
         ("stimuli,s",   po::value<std::string>()->required(),                   "Input vector file")
         ("output,o",    po::value<std::string>(),                               "Output VCD file");
@@ -132,8 +133,9 @@ int main(const int argc, const char* argv[]) {
 
     // run simulation
     unsigned long timeLimit = vm["limit"].as<unsigned long>();
+    unsigned long clockPeriod = vm["period"].as<unsigned long>();
     Simulator sim(parser, *os);
-    sim.simulate(stimuli, timeLimit);
+    sim.simulate(stimuli, timeLimit, clockPeriod);
 
     if (vm.count("output")) {
         fileOut.close();

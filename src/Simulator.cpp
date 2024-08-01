@@ -198,9 +198,7 @@ Simulator::Simulator(const VerilogParser& parser, std::ostream& os) : parser(par
 
 Simulator::Simulator(const VerilogParser& parser) : Simulator(parser, std::cout) { }
 
-void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit) {
-    const unsigned int periodTime = 10000;
-
+void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit, unsigned long clockPeriod) {
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
     os  << "$version Simulator $end\n"
@@ -228,7 +226,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
         Transaction prev_transaction{inputName, 0.0, !inputVector[0], 0};
         for (auto tb : inputVector) {
             if (prev_transaction.value == tb) {
-                stimuliTime += periodTime;
+                stimuliTime += clockPeriod;
                 continue;
             }
 
@@ -236,7 +234,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             transactionList.push_back(t);
 
             prev_transaction = t;
-            stimuliTime += periodTime;
+            stimuliTime += clockPeriod;
         }
         stimuliTime = 0;
     }

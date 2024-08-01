@@ -57,7 +57,7 @@ public:
     Simulator(const VerilogParser& parser);
     Simulator(const VerilogParser& parser, std::ostream& os);
 
-    void simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit);
+    void simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit, unsigned long clockPeriod);
 
 private:
 
