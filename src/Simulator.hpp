@@ -19,11 +19,12 @@ struct TriboolComp {
 
 struct Transaction {
     std::string wire;
+    double inputSlope;
     boost::tribool value;
     unsigned long tick;
 
     bool operator<(const Transaction& t) const {
-        return std::tie(wire, value.value, tick) < std::tie(t.wire, t.value.value, t.tick);
+        return std::tie(wire, inputSlope, value.value, tick) < std::tie(t.wire, t.inputSlope, t.value.value, t.tick);
     }
 };
 
@@ -60,6 +61,13 @@ public:
 
 private:
 
+    unsigned long toTick(double time) const;
     BooleanFunction getCellOutputFunction(const std::string& cellName, const std::string& output) const;
+    double computeOutputCapacitance(const std::string& outputWire, boost::tribool newState) const;
+    double computeOutputSlope(const std::string& cellName, const Arc& arc, boost::tribool newState, double inputSlope, double outputCapacitance, bool extrapolate) const;
+    double computeDelay(const std::string& cellName, const Arc& arc, boost::tribool newState, double inputSlope, double outputCapacitance, bool extrapolate) const;
+    double bilinearInterpolate(double x, double y, const std::vector<double>& xVec, const std::vector<double>& yVec, const std::vector<std::vector<double>>& zMatrix, bool extrapolate) const;
+    std::tuple<std::vector<double>::size_type, std::vector<double>::size_type> neighboringIdxs(double value, const std::vector<double>& valuesVec, bool extrapolate) const;
+    double interpolate(double x, double x1, double x2, double y1, double y2) const;
 
 };
