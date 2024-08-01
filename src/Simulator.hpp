@@ -46,7 +46,8 @@ public:
 class Simulator {
 private:
 
-    const VerilogParser& parser;
+    const Module& module;
+    const std::unordered_map<std::string, Cell>& lib;
     std::unordered_map<std::string, boost::tribool> wireStates;
     std::unordered_map<std::string, std::vector<Expression>> cellOutputExpressions;
     std::ostream& os;
@@ -54,8 +55,8 @@ private:
 public:
 
     Simulator() = delete;
-    Simulator(const VerilogParser& parser);
-    Simulator(const VerilogParser& parser, std::ostream& os);
+    Simulator(const Module& module, const std::unordered_map<std::string, Cell>& lib);
+    Simulator(const Module& module, const std::unordered_map<std::string, Cell>& lib, std::ostream& os);
 
     void simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit, unsigned long clockPeriod, const std::string& timescale);
 

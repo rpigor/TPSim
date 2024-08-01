@@ -49,8 +49,8 @@ std::unordered_map<std::string, std::vector<boost::tribool>> parseStimuliFile(co
     return stimuli;
 }
 
-bool validStimuli(std::unordered_map<std::string, std::vector<boost::tribool>> stimuli, const VerilogParser& parser) {
-    std::set<std::string> moduleIn(parser.module.inputs.begin(), parser.module.inputs.end());
+bool validStimuli(std::unordered_map<std::string, std::vector<boost::tribool>> stimuli, const Module& module) {
+    std::set<std::string> moduleIn(module.inputs.begin(), module.inputs.end());
     std::set<std::string> inputs;
     for (auto& t : stimuli) {
         inputs.insert(t.first);
@@ -127,16 +127,17 @@ int main(const int argc, const char* argv[]) {
     }
 
     // validate stimuli
-    if (!validStimuli(stimuli, parser)) {
+    if (!validStimuli(stimuli, parser.module)) {
         std::cerr << "[ ERROR ] Stimuli pin list does not match module pin list.\n";
         return EXIT_FAILURE;
     }
 
-    // run simulation
     unsigned long timeLimit = vm["limit"].as<unsigned long>();
     unsigned long clockPeriod = vm["period"].as<unsigned long>();
     std::string timescale = vm["timescale"].as<std::string>();
-    Simulator sim(parser, *os);
+
+    // simulate
+    Simulator sim(parser.module, cellLib, *os);
     sim.simulate(stimuli, timeLimit, clockPeriod, timescale);
 
     if (vm.count("output")) {

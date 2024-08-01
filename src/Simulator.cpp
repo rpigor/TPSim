@@ -49,6 +49,43 @@ void VCDBuffer::printVCD(std::ostream& os, const std::unordered_map<std::string,
     }
 }
 
+Simulator::Simulator(const Module& module, const std::unordered_map<std::string, Cell>& lib, std::ostream& os)
+: module(module), lib(lib), os(os) {
+    for (auto& w : module.wires) {
+        wireStates[w] = indeterminate;
+    }
+
+    for (auto& w : module.inputs) {
+        wireStates[w] = indeterminate;
+    }
+
+    for (auto& w : module.outputs) {
+        wireStates[w] = indeterminate;
+    }
+
+    BooleanParser<std::string::iterator> boolParser;
+    for (auto& t : lib) {
+        std::string cellName = t.first;
+        Cell cell = t.second;
+        for (unsigned int outIdx = 0; outIdx < cell.bitFunctions.size(); outIdx++) {
+            std::string boolFunc = cell.bitFunctions[outIdx];
+            auto firstIt(std::begin(boolFunc)), lastIt(std::end(boolFunc));
+
+            Expression result;
+            bool ok = boost::spirit::qi::phrase_parse(firstIt, lastIt, boolParser, boost::spirit::qi::space, result);
+            if (!ok) {
+                throw std::runtime_error("\'" + boolFunc + "\' is not a valid boolean expression.");
+            }
+            cellOutputExpressions[cellName].push_back(result);
+        }
+    }
+}
+
+Simulator::Simulator(const Module& module, const std::unordered_map<std::string, Cell>& lib)
+: Simulator(module, lib, std::cout) {
+
+}
+
 unsigned long Simulator::timeToTick(double time, const std::string& timeUnit, const std::string& tickUnit) const {
     unsigned long factor = unitScale(tickUnit) / unitScale(timeUnit);
     return static_cast<unsigned long>(time*factor);
@@ -68,7 +105,7 @@ unsigned long Simulator::unitScale(const std::string& unit) const {
 }
 
 BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, const std::string& output) const {
-    Cell cell = parser.lib.at(cellName);
+    Cell cell = lib.at(cellName);
     auto outIt = std::find(cell.outputs.begin(), cell.outputs.end(), output);
     unsigned int outIdx = std::distance(cell.outputs.begin(), outIt);
     return boost::apply_visitor(BooleanFunctionVisitor(), cellOutputExpressions.at(cell.name)[outIdx]);
@@ -76,8 +113,8 @@ BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, co
 
 double Simulator::computeOutputCapacitance(const std::string& outputWire, boost::tribool newState) const {
     double outputCap = 0.0;
-    for (auto& g : parser.module.gates) {
-        Cell cell = parser.lib.at(g.cell);
+    for (auto& g : module.gates) {
+        Cell cell = lib.at(g.cell);
 
         auto inputIt = g.net2input.find(outputWire);
         bool affectsGateInput = inputIt != g.net2input.end();
@@ -100,9 +137,9 @@ double Simulator::computeOutputSlope(
         return 0.0;
     }
 
-    auto slopeMatrix = newState ? parser.lib.at(cellName).delayAndSlope.at(arc).riseOutputSlope : parser.lib.at(cellName).delayAndSlope.at(arc).fallOutputSlope;
-    auto inputSlopeVec = parser.lib.at(cellName).delayAndSlope.at(arc).inputSlope;
-    auto outputCapacitanceVec = parser.lib.at(cellName).delayAndSlope.at(arc).outputCapacitance;
+    auto slopeMatrix = newState ? lib.at(cellName).delayAndSlope.at(arc).riseOutputSlope : lib.at(cellName).delayAndSlope.at(arc).fallOutputSlope;
+    auto inputSlopeVec = lib.at(cellName).delayAndSlope.at(arc).inputSlope;
+    auto outputCapacitanceVec = lib.at(cellName).delayAndSlope.at(arc).outputCapacitance;
 
     double delay = bilinearInterpolate(inputSlope, outputCapacitance, inputSlopeVec, outputCapacitanceVec, slopeMatrix, extrapolate);
     return delay;
@@ -119,9 +156,9 @@ double Simulator::computeDelay(
         return 0.0;
     }
 
-    auto delayMatrix = newState ? parser.lib.at(cellName).delayAndSlope.at(arc).riseDelay : parser.lib.at(cellName).delayAndSlope.at(arc).fallDelay;
-    auto inputSlopeVec = parser.lib.at(cellName).delayAndSlope.at(arc).inputSlope;
-    auto outputCapacitanceVec = parser.lib.at(cellName).delayAndSlope.at(arc).outputCapacitance;
+    auto delayMatrix = newState ? lib.at(cellName).delayAndSlope.at(arc).riseDelay : lib.at(cellName).delayAndSlope.at(arc).fallDelay;
+    auto inputSlopeVec = lib.at(cellName).delayAndSlope.at(arc).inputSlope;
+    auto outputCapacitanceVec = lib.at(cellName).delayAndSlope.at(arc).outputCapacitance;
 
     double delay = bilinearInterpolate(inputSlope, outputCapacitance, inputSlopeVec, outputCapacitanceVec, delayMatrix, extrapolate);
     return delay;
@@ -178,46 +215,13 @@ double Simulator::interpolate(double x, double x1, double x2, double y1, double 
     return y1 + ((y2-y1)/(x2-x1))*(x-x1);
 }
 
-Simulator::Simulator(const VerilogParser& parser, std::ostream& os) : parser(parser), os(os) {
-    for (auto& w : parser.module.wires) {
-        wireStates[w] = indeterminate;
-    }
-
-    for (auto& w : parser.module.inputs) {
-        wireStates[w] = indeterminate;
-    }
-
-    for (auto& w : parser.module.outputs) {
-        wireStates[w] = indeterminate;
-    }
-
-    BooleanParser<std::string::iterator> boolParser;
-    for (auto& t : parser.lib) {
-        std::string cellName = t.first;
-        Cell cell = t.second;
-        for (unsigned int outIdx = 0; outIdx < cell.bitFunctions.size(); outIdx++) {
-            std::string boolFunc = cell.bitFunctions[outIdx];
-            auto firstIt(std::begin(boolFunc)), lastIt(std::end(boolFunc));
-
-            Expression result;
-            bool ok = boost::spirit::qi::phrase_parse(firstIt, lastIt, boolParser, boost::spirit::qi::space, result);
-            if (!ok) {
-                throw std::runtime_error("\'" + boolFunc + "\' is not a valid boolean expression.");
-            }
-            cellOutputExpressions[cellName].push_back(result);
-        }
-    }
-}
-
-Simulator::Simulator(const VerilogParser& parser) : Simulator(parser, std::cout) { }
-
 void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit, unsigned long clockPeriod, const std::string& timescale) {
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
     os  << "$version Simulator $end\n"
         << "$date " << std::put_time(&tm, "%d/%m/%Y %T") << " $end\n"
         << "$timescale 1" << timescale << " $end\n"
-        << "$scope module " << parser.module.name << " $end\n";
+        << "$scope module " << module.name << " $end\n";
 
     std::unordered_map<std::string, char> wireIdMap;
     unsigned short wireId = 33;
@@ -234,7 +238,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     // init transaction list
     unsigned long stimuliTime = 0;
     std::vector<Transaction> transactionList;
-    for (const auto& inputName : parser.module.inputs) {
+    for (const auto& inputName : module.inputs) {
         std::vector<boost::tribool> inputVector = stimuli.at(inputName);
         Transaction prev_transaction{inputName, 0.0, !inputVector[0], 0};
         for (auto tb : inputVector) {
@@ -267,8 +271,8 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
         wireStates[t.wire] = t.value;
 
         // handles gates affected by the transaction
-        for (auto& g : parser.module.gates) {
-            Cell cell = parser.lib.at(g.cell);
+        for (auto& g : module.gates) {
+            Cell cell = lib.at(g.cell);
 
             auto inputIt = g.net2input.find(t.wire);
             bool affectsGateInput = inputIt != g.net2input.end();
