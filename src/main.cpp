@@ -65,12 +65,13 @@ bool validStimuli(std::unordered_map<std::string, std::vector<boost::tribool>> s
 int main(const int argc, const char* argv[]) {
     po::options_description desc("Arguments");
     desc.add_options()
-        ("help,h",                                                              "Show help message")
-        ("limit,l",     po::value<unsigned long>()->default_value(ULONG_MAX),   "Simulation time limit")
-        ("period,p",    po::value<unsigned long>()->default_value(10000),       "Input vector clock period")
-        ("verilog,v",   po::value<std::string>()->required(),                   "Verilog source file")
-        ("stimuli,s",   po::value<std::string>()->required(),                   "Input vector file")
-        ("output,o",    po::value<std::string>(),                               "Output VCD file");
+        ("help,h",                                                                  "Show help message")
+        ("limit,l",         po::value<unsigned long>()->default_value(ULONG_MAX),   "Simulation time limit")
+        ("timescale,t",     po::value<std::string>()->default_value("ps"),          "Simulation timescale")
+        ("period,p",        po::value<unsigned long>()->default_value(10000),       "Input vector clock period")
+        ("verilog,v",       po::value<std::string>()->required(),                   "Verilog source file")
+        ("stimuli,s",       po::value<std::string>()->required(),                   "Input vector file")
+        ("output,o",        po::value<std::string>(),                               "Output VCD file");
 
     po::positional_options_description posDesc;
     posDesc.add("verilog", 1);
@@ -134,8 +135,9 @@ int main(const int argc, const char* argv[]) {
     // run simulation
     unsigned long timeLimit = vm["limit"].as<unsigned long>();
     unsigned long clockPeriod = vm["period"].as<unsigned long>();
+    std::string timescale = vm["timescale"].as<std::string>();
     Simulator sim(parser, *os);
-    sim.simulate(stimuli, timeLimit, clockPeriod);
+    sim.simulate(stimuli, timeLimit, clockPeriod, timescale);
 
     if (vm.count("output")) {
         fileOut.close();

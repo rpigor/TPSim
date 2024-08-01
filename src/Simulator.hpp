@@ -57,11 +57,12 @@ public:
     Simulator(const VerilogParser& parser);
     Simulator(const VerilogParser& parser, std::ostream& os);
 
-    void simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit, unsigned long clockPeriod);
+    void simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit, unsigned long clockPeriod, const std::string& timescale);
 
 private:
 
-    unsigned long toTick(double time) const;
+    unsigned long timeToTick(double time, const std::string& timeUnit, const std::string& tickUnit) const;
+    unsigned long unitScale(const std::string& unit) const;
     BooleanFunction getCellOutputFunction(const std::string& cellName, const std::string& output) const;
     double computeOutputCapacitance(const std::string& outputWire, boost::tribool newState) const;
     double computeOutputSlope(const std::string& cellName, const Arc& arc, boost::tribool newState, double inputSlope, double outputCapacitance, bool extrapolate) const;

@@ -49,9 +49,22 @@ void VCDBuffer::printVCD(std::ostream& os, const std::unordered_map<std::string,
     }
 }
 
-// TODO: implement configurable time unit instead of hard coding it
-unsigned long Simulator::toTick(double time) const {
-    return static_cast<unsigned long>(time*1e3);
+unsigned long Simulator::timeToTick(double time, const std::string& timeUnit, const std::string& tickUnit) const {
+    unsigned long factor = unitScale(tickUnit) / unitScale(timeUnit);
+    return static_cast<unsigned long>(time*factor);
+}
+
+unsigned long Simulator::unitScale(const std::string& unit) const {
+    switch (unit[0]) {
+        case 'm': return 1e3;
+        case 'u': return 1e6;
+        case 'n': return 1e9;
+        case 'p': return 1e12;
+        case 'f': return 1e15;
+        case 'a': return 1e18;
+        default: return 1e0;
+    }
+    return 1e0;
 }
 
 BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, const std::string& output) const {
@@ -198,12 +211,12 @@ Simulator::Simulator(const VerilogParser& parser, std::ostream& os) : parser(par
 
 Simulator::Simulator(const VerilogParser& parser) : Simulator(parser, std::cout) { }
 
-void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit, unsigned long clockPeriod) {
+void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit, unsigned long clockPeriod, const std::string& timescale) {
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
     os  << "$version Simulator $end\n"
         << "$date " << std::put_time(&tm, "%d/%m/%Y %T") << " $end\n"
-        << "$timescale 1ps $end\n"
+        << "$timescale 1" << timescale << " $end\n"
         << "$scope module " << parser.module.name << " $end\n";
 
     std::unordered_map<std::string, char> wireIdMap;
@@ -288,7 +301,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             Arc arc{inputPin, outputPin};
             double delay = computeDelay(cell.name, arc, result, t.inputSlope, outputCap, true);
             double inputSlope = computeOutputSlope(cell.name, arc, result, t.inputSlope, outputCap, true);
-            unsigned long resultingTick = t.tick + toTick(delay);
+            unsigned long resultingTick = t.tick + timeToTick(delay, cell.timeUnit, timescale);
 
             transactionList.push_back(Transaction{outputWire, inputSlope, result, resultingTick});
         }

@@ -72,7 +72,7 @@ std::unordered_map<Arc, TimingLUT> invX1DelayAndSlope = {
 std::unordered_map<std::string, double> invX1Capacitance = {
     {"A", 0.00295}
 };
-Cell invX1 = {"INVX1", {"A"}, {"Y"}, {"!A"}, invX1Capacitance, invX1DelayAndSlope};
+Cell invX1 = {"INVX1", {"A"}, {"Y"}, {"!A"}, "pF", invX1Capacitance, "ns", invX1DelayAndSlope};
 
 TimingLUT and2ALUT = {
     {0.01,0.01735,0.02602,0.03903,0.05855,0.08782,0.13172,0.19757,0.29634,0.44449,0.6667,1.0,1.5},
@@ -210,7 +210,7 @@ std::unordered_map<std::string, double> and2Capacitance = {
     {"A", 0.0024},
     {"B", 0.0023}
 };
-Cell and2 = {"AND2", {"A", "B"}, {"Y"}, {"A&B"}, and2Capacitance, and2DelayAndSlope};
+Cell and2 = {"AND2", {"A", "B"}, {"Y"}, {"A&B"}, "pF", and2Capacitance, "ns", and2DelayAndSlope};
 
 std::unordered_map<std::string, Cell> cellLib =
 {

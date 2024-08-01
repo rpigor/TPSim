@@ -39,6 +39,8 @@ struct Cell {
     std::vector<std::string> inputs;
     std::vector<std::string> outputs;
     std::vector<std::string> bitFunctions;
+    std::string capacitanceUnit;
     std::unordered_map<std::string, double> pinCapacitance;
+    std::string timeUnit;
     std::unordered_map<Arc, TimingLUT> delayAndSlope;
 };
