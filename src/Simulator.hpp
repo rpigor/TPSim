@@ -22,6 +22,13 @@ struct Transaction {
     }
 };
 
+struct SimulationConfig {
+    const std::string& timescale;
+    unsigned long clockPeriod;
+    unsigned long timeLimit;
+    bool allowExtrapolation;
+};
+
 class Simulator {
 private:
 
@@ -29,15 +36,13 @@ private:
     const std::unordered_map<std::string, Cell>& lib;
     std::unordered_map<std::string, boost::tribool> wireStates;
     std::unordered_map<std::string, std::vector<Expression>> cellOutputExpressions;
-    std::ostream& os;
 
 public:
 
     Simulator() = delete;
     Simulator(const Module& module, const std::unordered_map<std::string, Cell>& lib);
-    Simulator(const Module& module, const std::unordered_map<std::string, Cell>& lib, std::ostream& os);
 
-    void simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit, unsigned long clockPeriod, const std::string& timescale);
+    void simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, const SimulationConfig& cfg, std::ostream& os);
 
 private:
 

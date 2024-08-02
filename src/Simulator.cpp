@@ -17,8 +17,8 @@ std::string toString(tribool value) {
     }
 }
 
-Simulator::Simulator(const Module& module, const std::unordered_map<std::string, Cell>& lib, std::ostream& os)
-: module(module), lib(lib), os(os) {
+Simulator::Simulator(const Module& module, const std::unordered_map<std::string, Cell>& lib)
+: module(module), lib(lib) {
     for (auto& w : module.wires) {
         wireStates[w] = indeterminate;
     }
@@ -47,11 +47,6 @@ Simulator::Simulator(const Module& module, const std::unordered_map<std::string,
             cellOutputExpressions[cellName].push_back(result);
         }
     }
-}
-
-Simulator::Simulator(const Module& module, const std::unordered_map<std::string, Cell>& lib)
-: Simulator(module, lib, std::cout) {
-
 }
 
 unsigned long Simulator::timeToTick(double time, const std::string& timeUnit, const std::string& tickUnit) const {
@@ -183,16 +178,16 @@ double Simulator::interpolate(double x, double x1, double x2, double y1, double 
     return y1 + ((y2-y1)/(x2-x1))*(x-x1);
 }
 
-void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit, unsigned long clockPeriod, const std::string& timescale) {
+void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, const SimulationConfig& cfg, std::ostream& os) {
     std::vector<std::string> wires;
     for (auto& t : wireStates) {
         wires.push_back(t.first);
     }
     VCDFormatter vcd(os, wires);
 
-   vcd.printHeader(timescale);
-   vcd.printDefinitions(module.name);
-   vcd.printVarDumpInit();
+    vcd.printHeader(cfg.timescale);
+    vcd.printDefinitions(module.name);
+    vcd.printVarDumpInit();
 
     // init transaction list
     unsigned long stimuliTime = 0;
@@ -202,7 +197,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
         Transaction prev_transaction{inputName, 0.0, !inputVector[0], 0};
         for (auto tb : inputVector) {
             if (prev_transaction.value == tb) {
-                stimuliTime += clockPeriod;
+                stimuliTime += cfg.clockPeriod;
                 continue;
             }
 
@@ -210,7 +205,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             transactionList.push_back(t);
 
             prev_transaction = t;
-            stimuliTime += clockPeriod;
+            stimuliTime += cfg.clockPeriod;
         }
         stimuliTime = 0;
     }
@@ -223,7 +218,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
         Transaction t = *it;
         transactionList.erase(it);
 
-        if (t.tick > timeLimit) {
+        if (t.tick > cfg.timeLimit) {
             break;
         }
 
@@ -262,9 +257,9 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
             double outputCap = computeOutputCapacitance(outputWire, result);
             Arc arc{inputPin, outputPin};
-            double delay = computeDelay(cell.name, arc, result, t.inputSlope, outputCap, true);
-            double inputSlope = computeOutputSlope(cell.name, arc, result, t.inputSlope, outputCap, true);
-            unsigned long resultingTick = t.tick + timeToTick(delay, cell.timeUnit, timescale);
+            double delay = computeDelay(cell.name, arc, result, t.inputSlope, outputCap, cfg.allowExtrapolation);
+            double inputSlope = computeOutputSlope(cell.name, arc, result, t.inputSlope, outputCap, cfg.allowExtrapolation);
+            unsigned long resultingTick = t.tick + timeToTick(delay, cell.timeUnit, cfg.timescale);
 
             transactionList.push_back(Transaction{outputWire, inputSlope, result, resultingTick});
         }
