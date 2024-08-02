@@ -81,11 +81,20 @@ int main(const int argc, const char* argv[]) {
     po::store(po::command_line_parser(argc, argv).options(desc).positional(posDesc).run(), vm);
 
     if (vm.count("help")) {
-        std::cerr << desc << "\n";
+        std::cerr   << desc << "\n"
+                    << "Example: ./Simulator module.v -s inputs.stim -o module.vcd --timescale fs --period 10000000\n";
         return EXIT_FAILURE;
     }
 
-    po::notify(vm);
+    try {
+        po::notify(vm);
+    }
+    catch (po::error& e) {
+        std::cerr   << "[ ERRROR ] Incorrect usage: " << e.what() << "\n"
+                    << desc << "\n"
+                    << "Example: ./Simulator module.v -s inputs.stim -o module.vcd --timescale fs --period 10000000\n";
+        return EXIT_FAILURE;
+    }
 
     std::string verilogFile = vm["verilog"].as<std::string>();
     if (!std::filesystem::exists(verilogFile)) {
@@ -143,7 +152,13 @@ int main(const int argc, const char* argv[]) {
 
     // simulate
     Simulator sim(parser.module, cellLib);
-    sim.simulate(stimuli, cfg, *os);
+    try {
+        sim.simulate(stimuli, cfg, *os);
+    }
+    catch (std::runtime_error& e) {
+        std::cerr << "[ ERRROR ] When simulating: " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
 
     if (vm.count("output")) {
         fileOut.close();
