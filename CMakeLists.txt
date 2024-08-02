@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(Simulator LANGUAGES CXX)
+project(TPSim LANGUAGES CXX)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -26,10 +26,12 @@ ADD_FLEX_BISON_DEPENDENCY(verilog_lexer verilog_parser)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-add_executable(Simulator
+add_executable(${PROJECT_NAME}
   ${PROJECT_SOURCE_DIR}/src/main.cpp ${PROJECT_SOURCE_DIR}/src/Simulator.cpp ${PROJECT_SOURCE_DIR}/src/VerilogParser.cpp ${PROJECT_SOURCE_DIR}/src/BooleanParser.cpp ${PROJECT_SOURCE_DIR}/src/VCD.cpp
   ${FLEX_verilog_lexer_OUTPUTS}
   ${BISON_verilog_parser_OUTPUTS}
 )
 
-target_link_libraries(Simulator Boost::program_options)
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "tpsim")
+
+target_link_libraries(${PROJECT_NAME} Boost::program_options)

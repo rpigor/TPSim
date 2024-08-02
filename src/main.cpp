@@ -62,27 +62,39 @@ bool validStimuli(std::unordered_map<std::string, std::vector<boost::tribool>> s
     return true;
 }
 
+void printUsage(std::ostream& os, const po::options_description& description) {
+    os  << "Usage: ./tpsim <netlist file> -s <stimuli file> [options...]\n"
+        << description << "\n"
+        << "Example: ./tpsim module.v -s inputs.stim -o module.vcd --timescale fs --period 100000\n";
+}
+
 int main(const int argc, const char* argv[]) {
-    po::options_description desc("Arguments");
+    po::options_description desc("Options");
     desc.add_options()
         ("help,h",                                                                          "Show help message")
-        ("timescale,t",             po::value<std::string>()->default_value("ps"),          "Simulation timescale")
-        ("period,p",                po::value<unsigned long>()->default_value(10000),       "Input vector clock period")
-        ("time-limit,l",            po::value<unsigned long>()->default_value(ULONG_MAX),   "Simulation time limit")
-        ("disable-extrapolation",                                                           "Disable LUT extrapolation")
-        ("verilog,v",               po::value<std::string>()->required(),                   "Verilog source file")
+        ("netlist,n",               po::value<std::string>()->required(),                   "Verilog netlist file")
         ("stimuli,s",               po::value<std::string>()->required(),                   "Input vector file")
-        ("output,o",                po::value<std::string>(),                               "Output VCD file");
+        ("output,o",                po::value<std::string>(),                               "Output VCD file")
+        ("timescale",               po::value<std::string>()->default_value("ps"),          "Simulation timescale")
+        ("period",                  po::value<unsigned long>()->default_value(10000),       "Input vector clock period")
+        ("time-limit",              po::value<unsigned long>()->default_value(ULONG_MAX),   "Simulation time limit")
+        ("disable-extrapolation",                                                           "Disable LUT extrapolation");
 
     po::positional_options_description posDesc;
-    posDesc.add("verilog", 1);
+    posDesc.add("netlist", 1);
 
     po::variables_map vm;
-    po::store(po::command_line_parser(argc, argv).options(desc).positional(posDesc).run(), vm);
+    try {
+        po::store(po::command_line_parser(argc, argv).options(desc).positional(posDesc).run(), vm);
+    }
+    catch (po::error& e) {
+        std::cerr   << "[ ERRROR ] Incorrect usage: " << e.what() << "\n";
+        printUsage(std::cerr, desc);
+        return EXIT_FAILURE;
+    }
 
-    if (vm.count("help")) {
-        std::cerr   << desc << "\n"
-                    << "Example: ./Simulator module.v -s inputs.stim -o module.vcd --timescale fs --period 10000000\n";
+    if (vm.count("help") || argc <= 1) {
+        printUsage(std::cerr, desc);
         return EXIT_FAILURE;
     }
 
@@ -90,13 +102,12 @@ int main(const int argc, const char* argv[]) {
         po::notify(vm);
     }
     catch (po::error& e) {
-        std::cerr   << "[ ERRROR ] Incorrect usage: " << e.what() << "\n"
-                    << desc << "\n"
-                    << "Example: ./Simulator module.v -s inputs.stim -o module.vcd --timescale fs --period 10000000\n";
+        std::cerr   << "[ ERRROR ] Incorrect usage: " << e.what() << "\n";
+        printUsage(std::cerr, desc);
         return EXIT_FAILURE;
     }
 
-    std::string verilogFile = vm["verilog"].as<std::string>();
+    std::string verilogFile = vm["netlist"].as<std::string>();
     if (!std::filesystem::exists(verilogFile)) {
         std::cerr << "[ ERROR ] File \'" << verilogFile << "\' not found.\n";
         return EXIT_FAILURE;
