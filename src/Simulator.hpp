@@ -11,12 +11,6 @@
 
 std::string toString(boost::tribool);
 
-struct TriboolComp {
-    bool operator()(boost::tribool tb1, boost::tribool tb2)  const {
-        return tb1.value < tb2.value;
-    }
-};
-
 struct Transaction {
     std::string wire;
     double inputSlope;
@@ -26,21 +20,6 @@ struct Transaction {
     bool operator<(const Transaction& t) const {
         return std::tie(wire, inputSlope, value.value, tick) < std::tie(t.wire, t.inputSlope, t.value.value, t.tick);
     }
-};
-
-class VCDBuffer {
-private:
-
-    unsigned long tick;
-    std::unordered_map<std::string, std::set<boost::tribool, TriboolComp>> buffer;
-
-public:
-
-    VCDBuffer();
-    void insert(const Transaction& t);
-    void clear();
-    void printVCD(std::ostream& os, const std::unordered_map<std::string, char>& wireIdMap) const;
-
 };
 
 class Simulator {

@@ -1,4 +1,5 @@
 #include "Simulator.hpp"
+#include "VCD.hpp"
 #include <iostream>
 #include <algorithm>
 #include <set>
@@ -13,39 +14,6 @@ std::string toString(tribool value) {
         return "1";
     } else {
         return "0";
-    }
-}
-
-VCDBuffer::VCDBuffer() : tick(-1) { }
-
-void VCDBuffer::insert(const Transaction& t) {
-    if (tick != t.tick) {
-        buffer.clear();
-        tick = t.tick;
-    }
-    buffer[t.wire].insert(t.value);
-}
-
-void VCDBuffer::clear() {
-    buffer.clear();
-    tick = -1;
-}
-
-void VCDBuffer::printVCD(std::ostream& os, const std::unordered_map<std::string, char>& wireIdMap) const {
-    os << "#" << tick << "\n";
-    for (auto& tupIt : buffer) {
-        if (tupIt.second.size() == 1) {
-            os << toString(*tupIt.second.begin()) << wireIdMap.at(tupIt.first) << "\n";
-        }
-        else {
-            auto tbIt = std::find_if(tupIt.second.begin(), tupIt.second.end(), [](boost::tribool tb) { return !indeterminate(tb); });
-            if (tbIt != tupIt.second.end()) {
-                os << toString(*tbIt) << wireIdMap.at(tupIt.first) << "\n";
-            }
-            else {
-                os << "x" << wireIdMap.at(tupIt.first) << "\n";
-            }
-        }
     }
 }
 
@@ -216,24 +184,15 @@ double Simulator::interpolate(double x, double x1, double x2, double y1, double 
 }
 
 void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, unsigned long timeLimit, unsigned long clockPeriod, const std::string& timescale) {
-    std::time_t t = std::time(nullptr);
-    std::tm tm = *std::localtime(&t);
-    os  << "$version Simulator $end\n"
-        << "$date " << std::put_time(&tm, "%d/%m/%Y %T") << " $end\n"
-        << "$timescale 1" << timescale << " $end\n"
-        << "$scope module " << module.name << " $end\n";
-
-    std::unordered_map<std::string, char> wireIdMap;
-    unsigned short wireId = 33;
+    std::vector<std::string> wires;
     for (auto& t : wireStates) {
-        char charId = static_cast<char>(wireId++);
-        wireIdMap[t.first] = charId;
-        os << "$var wire 1 " << charId << " " << t.first << " $end\n";
+        wires.push_back(t.first);
     }
+    VCDFormatter vcd(os, wires);
 
-    os  << "$upscope $end\n"
-        << "$enddefinitions $end\n"
-        << "$dumpvars\n";
+   vcd.printHeader(timescale);
+   vcd.printDefinitions(module.name);
+   vcd.printVarDumpInit();
 
     // init transaction list
     unsigned long stimuliTime = 0;
@@ -293,7 +252,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             }
 
             // compute new transaction
-            std::string outputPin = cell.outputs[0];
+            std::string outputPin = cell.outputs[0]; // only a single output is supported!
             std::string outputWire = g.output2net.at(outputPin);
             auto func = getCellOutputFunction(cell.name, outputPin);
             tribool result = func(inputStates);
@@ -311,12 +270,12 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
         }
 
         if (t.tick != prevTime) {
-            sameTimeTransactions.printVCD(os, wireIdMap);
+            vcd.printVarDumpBuffer(sameTimeTransactions);
         }
 
         sameTimeTransactions.insert(t);
         prevTime = t.tick;
     }
 
-    sameTimeTransactions.printVCD(os, wireIdMap);
+    vcd.printVarDumpBuffer(sameTimeTransactions);
 }
