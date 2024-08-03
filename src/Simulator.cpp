@@ -1,6 +1,7 @@
 #include "Simulator.hpp"
 #include "EventQueue.hpp"
 #include "VCD.hpp"
+#include "Units.hpp"
 #include <iostream>
 #include <algorithm>
 #include <ctime>
@@ -40,21 +41,8 @@ Simulator::Simulator(const Module& module, const std::unordered_map<std::string,
 }
 
 unsigned long Simulator::timeToTick(double time, const std::string& timeUnit, const std::string& tickUnit) const {
-    unsigned long factor = unitScale(tickUnit) / unitScale(timeUnit);
+    unsigned long factor = Units::unitScale(tickUnit) / Units::unitScale(timeUnit);
     return static_cast<unsigned long>(time*factor);
-}
-
-unsigned long Simulator::unitScale(const std::string& unit) const {
-    switch (unit[0]) {
-        case 'm': return 1e3;
-        case 'u': return 1e6;
-        case 'n': return 1e9;
-        case 'p': return 1e12;
-        case 'f': return 1e15;
-        case 'a': return 1e18;
-        default: return 1e0;
-    }
-    return 1e0;
 }
 
 BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, const std::string& output) const {

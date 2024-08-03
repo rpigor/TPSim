@@ -68,7 +68,7 @@ VCDFormatter::VCDFormatter(std::ostream& os, const std::vector<std::string>& wir
 void VCDFormatter::printHeader(const std::string& timescale) const {
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
-    os  << "$version Simulator $end\n"
+    os  << "$version TPSim $end\n"
         << "$date " << std::put_time(&tm, "%d/%m/%Y %T") << " $end\n"
         << "$timescale 1" << timescale << " $end\n";
 }

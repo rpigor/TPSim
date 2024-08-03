@@ -27,7 +27,7 @@ ADD_FLEX_BISON_DEPENDENCY(verilog_lexer verilog_parser)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(${PROJECT_NAME}
-  ${PROJECT_SOURCE_DIR}/src/main.cpp ${PROJECT_SOURCE_DIR}/src/Simulator.cpp ${PROJECT_SOURCE_DIR}/src/EventQueue.cpp ${PROJECT_SOURCE_DIR}/src/VerilogParser.cpp ${PROJECT_SOURCE_DIR}/src/BooleanParser.cpp ${PROJECT_SOURCE_DIR}/src/VCD.cpp
+  ${PROJECT_SOURCE_DIR}/src/main.cpp ${PROJECT_SOURCE_DIR}/src/Simulator.cpp ${PROJECT_SOURCE_DIR}/src/EventQueue.cpp ${PROJECT_SOURCE_DIR}/src/VerilogParser.cpp ${PROJECT_SOURCE_DIR}/src/BooleanParser.cpp ${PROJECT_SOURCE_DIR}/src/VCD.cpp ${PROJECT_SOURCE_DIR}/src/OptionsManager.cpp ${PROJECT_SOURCE_DIR}/src/Units.cpp
   ${FLEX_verilog_lexer_OUTPUTS}
   ${BISON_verilog_parser_OUTPUTS}
 )
