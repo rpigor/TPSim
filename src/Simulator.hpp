@@ -6,21 +6,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <set>
 #include <unordered_map>
-
-std::string toString(boost::tribool);
-
-struct Transaction {
-    std::string wire;
-    double inputSlope;
-    boost::tribool value;
-    unsigned long tick;
-
-    bool operator<(const Transaction& t) const {
-        return std::tie(wire, inputSlope, value.value, tick) < std::tie(t.wire, t.inputSlope, t.value.value, t.tick);
-    }
-};
 
 struct SimulationConfig {
     const std::string& timescale;

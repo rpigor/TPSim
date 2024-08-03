@@ -1,13 +1,26 @@
 #include "VCD.hpp"
+#include <algorithm>
+#include <iomanip>
+#include <ctime>
+
+std::string toString(boost::tribool value) {
+    if (indeterminate(value)) {
+        return "x";
+    } else if (value) {
+        return "1";
+    } else {
+        return "0";
+    }
+}
 
 VCDBuffer::VCDBuffer() : tick(-1) { }
 
-void VCDBuffer::insert(const Transaction& t) {
-    if (tick != t.tick) {
+void VCDBuffer::insert(const Event& ev) {
+    if (tick != ev.tick) {
         buffer.clear();
-        tick = t.tick;
+        tick = ev.tick;
     }
-    buffer[t.wire].insert(t.value);
+    buffer[ev.wire].insert(ev.value);
 }
 
 void VCDBuffer::clear() {

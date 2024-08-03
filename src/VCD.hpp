@@ -1,11 +1,14 @@
 #pragma once
 
-#include "Simulator.hpp"
+#include "Event.hpp"
 #include <boost/logic/tribool.hpp>
 #include <unordered_map>
+#include <vector>
 #include <set>
 #include <string>
 #include <iostream>
+
+std::string toString(boost::tribool);
 
 struct TriboolComp {
     bool operator()(boost::tribool tb1, boost::tribool tb2)  const {
@@ -22,7 +25,7 @@ private:
 public:
 
     VCDBuffer();
-    void insert(const Transaction& t);
+    void insert(const Event& ev);
     void clear();
     void printVCD(std::ostream& os, const std::unordered_map<std::string, std::string>& wireIdMap) const;
 

@@ -1,21 +1,11 @@
 #include "Simulator.hpp"
+#include "EventQueue.hpp"
 #include "VCD.hpp"
 #include <iostream>
 #include <algorithm>
-#include <set>
 #include <ctime>
 
 using namespace boost;
-
-std::string toString(tribool value) {
-    if (indeterminate(value)) {
-        return "x";
-    } else if (value) {
-        return "1";
-    } else {
-        return "0";
-    }
-}
 
 Simulator::Simulator(const Module& module, const std::unordered_map<std::string, Cell>& lib)
 : module(module), lib(lib) {
@@ -189,46 +179,27 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     vcd.printDefinitions(module.name);
     vcd.printVarDumpInit();
 
-    // init transaction list
-    unsigned long stimuliTime = 0;
-    std::vector<Transaction> transactionList;
-    for (const auto& inputName : module.inputs) {
-        std::vector<boost::tribool> inputVector = stimuli.at(inputName);
-        Transaction prev_transaction{inputName, 0.0, !inputVector[0], 0};
-        for (auto tb : inputVector) {
-            if (prev_transaction.value == tb) {
-                stimuliTime += cfg.clockPeriod;
-                continue;
-            }
-
-            Transaction t{inputName, 0.0, tb, stimuliTime};
-            transactionList.push_back(t);
-
-            prev_transaction = t;
-            stimuliTime += cfg.clockPeriod;
-        }
-        stimuliTime = 0;
-    }
+    // initiailize event queue with external stimuli
+    EventQueue events(stimuli, module.inputs, cfg.clockPeriod);
 
     // simulation loop
-    unsigned long prevTime = (std::min_element(transactionList.begin(), transactionList.end(), [](Transaction i, Transaction j) { return i.tick < j.tick; }))->tick;
-    VCDBuffer sameTimeTransactions;
-    while (!transactionList.empty()) {
-        auto it = std::min_element(transactionList.begin(), transactionList.end(), [](Transaction i, Transaction j) { return i.tick < j.tick; });
-        Transaction t = *it;
-        transactionList.erase(it);
+    unsigned long prevTime = events.top().tick;
+    VCDBuffer sameTickEvs;
+    while (!events.empty()) {
+        Event ev = events.top();
+        events.pop();
 
-        if (t.tick > cfg.timeLimit) {
+        if (ev.tick > cfg.timeLimit) {
             break;
         }
 
-        wireStates[t.wire] = t.value;
+        wireStates[ev.wire] = ev.value;
 
-        // handles gates affected by the transaction
+        // handles gates affected by the event
         for (auto& g : module.gates) {
             Cell cell = lib.at(g.cell);
 
-            auto inputIt = g.net2input.find(t.wire);
+            auto inputIt = g.net2input.find(ev.wire);
             bool affectsGateInput = inputIt != g.net2input.end();
             if (!affectsGateInput) {
                 continue;
@@ -238,7 +209,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             std::vector<tribool> inputStates;
             for (const std::string& in : cell.inputs) {
                 if (in == inputPin) {
-                    inputStates.push_back(t.value);
+                    inputStates.push_back(ev.value);
                     continue;
                 }
 
@@ -246,7 +217,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
                 inputStates.push_back(wireStates.at(inWire));
             }
 
-            // compute new transaction
+            // compute new event
             std::string outputPin = cell.outputs[0]; // only a single output is supported!
             std::string outputWire = g.output2net.at(outputPin);
             auto func = getCellOutputFunction(cell.name, outputPin);
@@ -257,20 +228,20 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
             double outputCap = computeOutputCapacitance(outputWire, result);
             Arc arc{inputPin, outputPin};
-            double delay = computeDelay(cell.name, arc, result, t.inputSlope, outputCap, cfg.allowExtrapolation);
-            double inputSlope = computeOutputSlope(cell.name, arc, result, t.inputSlope, outputCap, cfg.allowExtrapolation);
-            unsigned long resultingTick = t.tick + timeToTick(delay, cell.timeUnit, cfg.timescale);
+            double delay = computeDelay(cell.name, arc, result, ev.inputSlope, outputCap, cfg.allowExtrapolation);
+            double inputSlope = computeOutputSlope(cell.name, arc, result, ev.inputSlope, outputCap, cfg.allowExtrapolation);
+            unsigned long resultingTick = ev.tick + timeToTick(delay, cell.timeUnit, cfg.timescale);
 
-            transactionList.push_back(Transaction{outputWire, inputSlope, result, resultingTick});
+            events.push(Event{outputWire, inputSlope, result, resultingTick});
         }
 
-        if (t.tick != prevTime) {
-            vcd.printVarDumpBuffer(sameTimeTransactions);
+        if (ev.tick != prevTime) {
+            vcd.printVarDumpBuffer(sameTickEvs);
         }
 
-        sameTimeTransactions.insert(t);
-        prevTime = t.tick;
+        sameTickEvs.insert(ev);
+        prevTime = ev.tick;
     }
 
-    vcd.printVarDumpBuffer(sameTimeTransactions);
+    vcd.printVarDumpBuffer(sameTickEvs);
 }
