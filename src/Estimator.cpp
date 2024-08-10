@@ -32,11 +32,11 @@ double Estimator::bilinearInterpolate(double x, double y, const std::vector<doub
 }
 
 std::tuple<std::vector<double>::size_type, std::vector<double>::size_type> Estimator::neighboringIdxs(double value, const std::vector<double>& values, bool extrapolate) {
-    auto endIt = std::find_if(values.begin(), values.end(), [value](double v) { return value > v; });
+    auto endIt = std::find_if(values.begin(), values.end(), [value](double v) { return v > value; });
     decltype(endIt) startIt;
 
     if (endIt == values.end()) {
-        if (!extrapolate) {
+        if ((value != values.back()) && !extrapolate) {
             throw std::runtime_error("cannot find neighboring value " + std::to_string(value) + " (out of upper bound)");
         }
         endIt--;
