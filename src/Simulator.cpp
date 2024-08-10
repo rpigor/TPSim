@@ -1,5 +1,6 @@
 #include "Simulator.hpp"
 #include "EventQueue.hpp"
+#include "Estimator.hpp"
 #include "VCD.hpp"
 #include "Units.hpp"
 #include <iostream>
@@ -68,94 +69,6 @@ double Simulator::computeOutputCapacitance(const std::string& outputWire, boost:
     return outputCap;
 }
 
-double Simulator::computeOutputSlope(
-                                        const std::string& cellName,
-                                        const Arc& arc, boost::tribool newState,
-                                        double inputSlope, double outputCapacitance,
-                                        bool extrapolate
-                                    ) const {
-    if (indeterminate(newState)) {
-        return 0.0;
-    }
-
-    auto slopeMatrix = newState ? lib.at(cellName).delayAndSlope.at(arc).riseOutputSlope : lib.at(cellName).delayAndSlope.at(arc).fallOutputSlope;
-    auto inputSlopeVec = lib.at(cellName).delayAndSlope.at(arc).inputSlope;
-    auto outputCapacitanceVec = lib.at(cellName).delayAndSlope.at(arc).outputCapacitance;
-
-    double delay = bilinearInterpolate(inputSlope, outputCapacitance, inputSlopeVec, outputCapacitanceVec, slopeMatrix, extrapolate);
-    return delay;
-
-}
-
-double Simulator::computeDelay(
-                                    const std::string& cellName,
-                                    const Arc& arc, boost::tribool newState,
-                                    double inputSlope, double outputCapacitance,
-                                    bool extrapolate
-                                ) const {
-    if (indeterminate(newState)) {
-        return 0.0;
-    }
-
-    auto delayMatrix = newState ? lib.at(cellName).delayAndSlope.at(arc).riseDelay : lib.at(cellName).delayAndSlope.at(arc).fallDelay;
-    auto inputSlopeVec = lib.at(cellName).delayAndSlope.at(arc).inputSlope;
-    auto outputCapacitanceVec = lib.at(cellName).delayAndSlope.at(arc).outputCapacitance;
-
-    double delay = bilinearInterpolate(inputSlope, outputCapacitance, inputSlopeVec, outputCapacitanceVec, delayMatrix, extrapolate);
-    return delay;
-}
-
-double Simulator::bilinearInterpolate(
-                                        double x, double y,
-                                        const std::vector<double>& xVec, const std::vector<double>& yVec,
-                                        const std::vector<std::vector<double>>& zMatrix,
-                                        bool extrapolate
-                                    ) const {
-    auto [xLowerIdx, xUpperIdx] = neighboringIdxs(x, xVec, extrapolate);
-    auto xLower = xVec.at(xLowerIdx);
-    auto xUpper = xVec.at(xUpperIdx);
-
-    auto [yLowerIdx, yUpperIdx] = neighboringIdxs(y, yVec, extrapolate);
-    auto yLower = yVec.at(yLowerIdx);
-    auto yUpper = yVec.at(yUpperIdx);
-
-    double zLowerXLowerY = zMatrix.at(xLowerIdx).at(yLowerIdx);
-    double zLowerXUpperY = zMatrix.at(xLowerIdx).at(yUpperIdx);
-    double zUpperXLowerY = zMatrix.at(xUpperIdx).at(yLowerIdx);
-    double zUpperXUpperY = zMatrix.at(xUpperIdx).at(yUpperIdx);
-
-    double zLowerX = interpolate(y, yLower, yUpper, zLowerXLowerY, zLowerXUpperY);
-    double zUpperX = interpolate(y, yLower, yUpper, zUpperXLowerY, zUpperXUpperY);
-    double zItp = interpolate(x, xLower, xUpper, zLowerX, zUpperX);
-
-    return zItp;
-}
-
-std::tuple<std::vector<double>::size_type, std::vector<double>::size_type> Simulator::neighboringIdxs(double value, const std::vector<double>& valuesVec, bool extrapolate) const {
-    auto endIt = std::find_if(valuesVec.begin(), valuesVec.end(), [value](double v) { return value > v; });
-    decltype(endIt) startIt;
-
-    if (endIt == valuesVec.end()) {
-        if (!extrapolate) {
-            throw std::runtime_error("cannot find neighboring value " + std::to_string(value) + " (out of upper bound)");
-        }
-        endIt--;
-    }
-    else if (endIt == valuesVec.begin()) {
-        if (!extrapolate) {
-            throw std::runtime_error("cannot find neighboring value " + std::to_string(value) + " (out of lower bound)");
-        }
-        endIt++;
-    }
-    startIt = endIt - 1;
-
-    return { std::distance(valuesVec.begin(), startIt), std::distance(valuesVec.begin(), endIt) };
-}
-
-double Simulator::interpolate(double x, double x1, double x2, double y1, double y2) const {
-    return y1 + ((y2-y1)/(x2-x1))*(x-x1);
-}
-
 void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, const SimulationConfig& cfg, std::ostream& os) {
     std::vector<std::string> wires;
     for (auto& t : wireStates) {
@@ -216,8 +129,8 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
             double outputCap = computeOutputCapacitance(outputWire, result);
             Arc arc{inputPin, outputPin};
-            double delay = computeDelay(cell.name, arc, result, ev.inputSlope, outputCap, cfg.allowExtrapolation);
-            double inputSlope = computeOutputSlope(cell.name, arc, result, ev.inputSlope, outputCap, cfg.allowExtrapolation);
+            double delay = indeterminate(result) ? 0.0 : Estimator::estimate(lib.at(cell.name).delay, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
+            double inputSlope = indeterminate(result) ? 0.0 : Estimator::estimate(lib.at(cell.name).outputSlope, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             unsigned long resultingTick = ev.tick + timeToTick(delay, cell.timeUnit, cfg.timescale);
 
             events.push(Event{outputWire, inputSlope, result, resultingTick});

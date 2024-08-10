@@ -35,10 +35,5 @@ private:
     unsigned long timeToTick(double time, const std::string& timeUnit, const std::string& tickUnit) const;
     BooleanFunction getCellOutputFunction(const std::string& cellName, const std::string& output) const;
     double computeOutputCapacitance(const std::string& outputWire, boost::tribool newState) const;
-    double computeOutputSlope(const std::string& cellName, const Arc& arc, boost::tribool newState, double inputSlope, double outputCapacitance, bool extrapolate) const;
-    double computeDelay(const std::string& cellName, const Arc& arc, boost::tribool newState, double inputSlope, double outputCapacitance, bool extrapolate) const;
-    double bilinearInterpolate(double x, double y, const std::vector<double>& xVec, const std::vector<double>& yVec, const std::vector<std::vector<double>>& zMatrix, bool extrapolate) const;
-    std::tuple<std::vector<double>::size_type, std::vector<double>::size_type> neighboringIdxs(double value, const std::vector<double>& valuesVec, bool extrapolate) const;
-    double interpolate(double x, double x1, double x2, double y1, double y2) const;
 
 };

@@ -25,13 +25,13 @@ struct std::hash<Arc> {
     }
 };
 
-struct TimingLUT {
-    std::vector<double> inputSlope;
-    std::vector<double> outputCapacitance;
-    std::vector<std::vector<double>> fallDelay;
-    std::vector<std::vector<double>> riseDelay;
-    std::vector<std::vector<double>> fallOutputSlope;
-    std::vector<std::vector<double>> riseOutputSlope;
+struct LUT {
+
+    std::vector<double> xIdxValues;
+    std::vector<double> yIdxValues;
+    std::vector<std::vector<double>> riseZMatrix;
+    std::vector<std::vector<double>> fallZMatrix;
+
 };
 
 struct Cell {
@@ -42,5 +42,6 @@ struct Cell {
     std::string capacitanceUnit;
     std::unordered_map<std::string, double> pinCapacitance;
     std::string timeUnit;
-    std::unordered_map<Arc, TimingLUT> delayAndSlope;
+    std::unordered_map<Arc, LUT> delay;
+    std::unordered_map<Arc, LUT> outputSlope;
 };
