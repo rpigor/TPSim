@@ -35,7 +35,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "tpsim")
 target_link_libraries(${PROJECT_NAME} Boost::program_options)
 
 find_package(Catch2 REQUIRED)
-add_executable(TPSimTest ${PROJECT_SOURCE_DIR}/test/EstimatorTest.cpp ${PROJECT_SOURCE_DIR}/src/Estimator.cpp)
+add_executable(TPSimTest
+                ${PROJECT_SOURCE_DIR}/test/EstimatorTest.cpp ${PROJECT_SOURCE_DIR}/src/Estimator.cpp
+                ${PROJECT_SOURCE_DIR}/test/EventQueueTest.cpp ${PROJECT_SOURCE_DIR}/src/EventQueue.cpp)
 set_target_properties(TPSimTest PROPERTIES OUTPUT_NAME "test")
 target_link_libraries(TPSimTest PRIVATE Catch2::Catch2WithMain)
 include(CTest)
