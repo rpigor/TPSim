@@ -229,7 +229,7 @@ std::unordered_map<std::string, double> and2Capacitance = {
     {"A", 0.0024},
     {"B", 0.0023}
 };
-Cell and2 = {"AND2", {"A", "B"}, {"Y"}, {"A&B"}, "pF", and2Capacitance, "ns", and2Delay, and2Slope};
+Cell and2 = {"AND2X1", {"A", "B"}, {"Y"}, {"A&B"}, "pF", and2Capacitance, "ns", and2Delay, and2Slope};
 
 std::unordered_map<std::string, Cell> cellLib =
 {
