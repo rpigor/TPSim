@@ -1,12 +1,20 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.27)
 
 project(TPSim LANGUAGES CXX)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
-
+set(CMAKE_MESSAGE_LOG_LEVEL "STATUS")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O2")
+
+add_compile_options(
+  -Wall
+  -Wextra
+  -O3
+  -Wno-unused-parameter
+  -Wno-unused-value
+  -Wno-missing-field-initializers
+  -Wno-narrowing
+  -Wno-pointer-arith)
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/src/verilog)
@@ -15,6 +23,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 find_package(Boost 1.80.0 COMPONENTS program_options REQUIRED)
+find_package(Catch2 REQUIRED)
 
 BISON_TARGET(verilog_parser
              ${PROJECT_SOURCE_DIR}/src/verilog/verilog_parser.yy
@@ -26,20 +35,25 @@ ADD_FLEX_BISON_DEPENDENCY(verilog_lexer verilog_parser)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
+file(GLOB_RECURSE SRCFILES "src/*.cpp")
 add_executable(${PROJECT_NAME}
-  ${PROJECT_SOURCE_DIR}/src/main.cpp ${PROJECT_SOURCE_DIR}/src/Simulator.cpp ${PROJECT_SOURCE_DIR}/src/EventQueue.cpp ${PROJECT_SOURCE_DIR}/src/Estimator.cpp ${PROJECT_SOURCE_DIR}/src/VerilogParser.cpp ${PROJECT_SOURCE_DIR}/src/StimuliParser.cpp ${PROJECT_SOURCE_DIR}/src/BooleanParser.cpp ${PROJECT_SOURCE_DIR}/src/VCD.cpp ${PROJECT_SOURCE_DIR}/src/OptionsManager.cpp ${PROJECT_SOURCE_DIR}/src/Units.cpp
+  ${SRCFILES}
   ${FLEX_verilog_lexer_OUTPUTS}
   ${BISON_verilog_parser_OUTPUTS}
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "tpsim")
 target_link_libraries(${PROJECT_NAME} Boost::program_options)
 
-find_package(Catch2 REQUIRED)
+
+file(GLOB_RECURSE TESTFILES "test/*.cpp")
 add_executable(TPSimTest
-                ${PROJECT_SOURCE_DIR}/test/EstimatorTest.cpp ${PROJECT_SOURCE_DIR}/src/Estimator.cpp
-                ${PROJECT_SOURCE_DIR}/test/EventQueueTest.cpp ${PROJECT_SOURCE_DIR}/src/EventQueue.cpp)
+                ${TESTFILES}
+                ${PROJECT_SOURCE_DIR}/src/Estimator.cpp
+                ${PROJECT_SOURCE_DIR}/src/EventQueue.cpp)
 set_target_properties(TPSimTest PROPERTIES OUTPUT_NAME "test")
 target_link_libraries(TPSimTest PRIVATE Catch2::Catch2WithMain)
+
 include(CTest)
 include(Catch)
+
 catch_discover_tests(TPSimTest)
