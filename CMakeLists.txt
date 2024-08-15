@@ -49,6 +49,7 @@ file(GLOB_RECURSE TESTFILES "test/*.cpp")
 add_executable(TPSimTest
                 ${TESTFILES}
                 ${PROJECT_SOURCE_DIR}/src/Estimator.cpp
+                ${PROJECT_SOURCE_DIR}/src/Units.cpp
                 ${PROJECT_SOURCE_DIR}/src/EventQueue.cpp)
 set_target_properties(TPSimTest PROPERTIES OUTPUT_NAME "test")
 target_link_libraries(TPSimTest PRIVATE Catch2::Catch2WithMain)

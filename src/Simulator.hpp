@@ -32,7 +32,6 @@ public:
 
 private:
 
-    unsigned long timeToTick(double time, const std::string& timeUnit, const std::string& tickUnit) const;
     BooleanFunction getCellOutputFunction(const std::string& cellName, const std::string& output) const;
     double computeOutputCapacitance(const std::string& outputWire, boost::tribool newState) const;
 

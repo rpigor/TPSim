@@ -14,6 +14,8 @@ namespace Units {
         {'a', 1e18}
     };
 
+    double tickToTime(unsigned long tick, const std::string& timeUnit, const std::string& tickUnit);
+    unsigned long timeToTick(double time, const std::string& timeUnit, const std::string& tickUnit);
     unsigned long unitScale(const std::string& unit);
     bool isValidUnit(const std::string& unit);
 

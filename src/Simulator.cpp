@@ -1,5 +1,6 @@
 #include "Simulator.hpp"
 #include "EventQueue.hpp"
+#include "Power.hpp"
 #include "Estimator.hpp"
 #include "VCD.hpp"
 #include "Units.hpp"
@@ -41,10 +42,7 @@ Simulator::Simulator(const Module& module, const std::unordered_map<std::string,
     }
 }
 
-unsigned long Simulator::timeToTick(double time, const std::string& timeUnit, const std::string& tickUnit) const {
-    unsigned long factor = Units::unitScale(tickUnit) / Units::unitScale(timeUnit);
-    return static_cast<unsigned long>(time*factor);
-}
+
 
 BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, const std::string& output) const {
     Cell cell = lib.at(cellName);
@@ -82,6 +80,8 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
     // initiailize event queue with external stimuli
     EventQueue events(stimuli, module.inputs, cfg.clockPeriod);
+
+    std::vector<Energy> energyVec;
 
     // simulation loop
     unsigned long prevTime = events.top().tick;
@@ -123,16 +123,22 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             std::string outputWire = g.output2net.at(outputPin);
             auto func = getCellOutputFunction(cell.name, outputPin);
             tribool result = func(inputStates);
-            if (wireStates.at(outputWire) == result) {
-                continue;
-            }
 
+            // estimate Event parameters
             double outputCap = computeOutputCapacitance(outputWire, result);
             Arc arc{inputPin, outputPin};
             double delay = indeterminate(result) ? 0.0 : Estimator::estimate(lib.at(cell.name).delay, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             double inputSlope = indeterminate(result) ? 0.0 : Estimator::estimate(lib.at(cell.name).outputSlope, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
-            unsigned long resultingTick = ev.tick + timeToTick(delay, cell.timeUnit, cfg.timescale);
+            unsigned long resultingTick = ev.tick + Units::timeToTick(delay, cell.timeUnit, cfg.timescale);
 
+            // estimate energy
+            double eventPower = indeterminate(result) ? 0.0 : Estimator::estimate(lib.at(cell.name).power, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
+            Energy energy = Estimator::computeEnergy(eventPower, cell.timeUnit, cfg.timescale, Units::tickToTime(resultingTick, cell.timeUnit, cfg.timescale), inputSlope, true);
+            energyVec.push_back(energy);
+
+            if (wireStates.at(outputWire) == result) {
+                continue;
+            }
             events.push(Event{outputWire, inputSlope, result, resultingTick});
         }
 
@@ -145,4 +151,8 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     }
 
     vcd.printVarDumpBuffer(sameTickEvs);
+
+    /*for (auto& e : energyVec) {
+        std::cout << e << std::endl;
+    }*/
 }

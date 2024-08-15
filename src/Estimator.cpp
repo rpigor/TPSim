@@ -1,6 +1,18 @@
 #include "Estimator.hpp"
+#include "Units.hpp"
 #include <tuple>
 #include <algorithm>
+
+Energy Estimator::computeEnergy(double power, const std::string& dataTimescale, const std::string& simTimescale, double startTime, double slope, bool dynamic) {
+    double endTime = estimateEndTime(startTime, slope);
+    double interval = endTime - startTime;
+    double energy = power*interval;
+    return Energy{Units::timeToTick(startTime, dataTimescale, simTimescale), Units::timeToTick(endTime, dataTimescale, simTimescale), energy, dynamic};
+}
+
+double Estimator::estimateEndTime(double startTime, double slope) {
+    return startTime + (slope/0.6);
+}
 
 double Estimator::estimate(std::unordered_map<Arc, LUT> viewPerArc, const Arc& arc, double x, double y, bool isRising, bool extrapolate) {
     auto xIdxValues = viewPerArc.at(arc).xIdxValues;
