@@ -8,7 +8,7 @@ std::ostream& operator<< (std::ostream& os, const Energy& e) {
 double accumulateEnergy(const std::vector<Energy>& energies) {
     double energy = 0.0;
     for (auto& e : energies) {
-        energy += abs(e.energy);
+        energy += fabs(e.energy);
     }
     return energy;
 }
