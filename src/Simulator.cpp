@@ -42,8 +42,6 @@ Simulator::Simulator(const Module& module, const std::unordered_map<std::string,
     }
 }
 
-
-
 BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, const std::string& output) const {
     Cell cell = lib.at(cellName);
     auto outIt = std::find(cell.outputs.begin(), cell.outputs.end(), output);
@@ -125,16 +123,18 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             tribool result = func(inputStates);
 
             // estimate Event parameters
-            double outputCap = computeOutputCapacitance(outputWire, result);
+            double eventOutputCap = computeOutputCapacitance(outputWire, result);
             Arc arc{inputPin, outputPin};
-            double delay = indeterminate(result) ? 0.0 : Estimator::estimate(lib.at(cell.name).delay, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
-            double inputSlope = indeterminate(result) ? 0.0 : Estimator::estimate(lib.at(cell.name).outputSlope, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
+            double delay = indeterminate(ev.value) ? 0.0 : Estimator::estimate(lib.at(cell.name).delay, arc, ev.inputSlope, eventOutputCap, ev.value ? true : false, cfg.allowExtrapolation);
+            double inputSlope = indeterminate(ev.value) ? 0.0 : Estimator::estimate(lib.at(cell.name).outputSlope, arc, ev.inputSlope, eventOutputCap, ev.value ? true : false, cfg.allowExtrapolation);
             unsigned long resultingTick = ev.tick + Units::timeToTick(delay, cell.timeUnit, cfg.timescale);
 
             // estimate energy
-            double eventPower = indeterminate(result) ? 0.0 : Estimator::estimate(lib.at(cell.name).power, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
+            double eventPower = indeterminate(ev.value) ? 0.0 : Estimator::estimate(lib.at(cell.name).power, arc, ev.inputSlope, eventOutputCap, ev.value ? true : false, cfg.allowExtrapolation);
             Energy energy = Estimator::computeEnergy(eventPower, cell.timeUnit, cfg.timescale, Units::tickToTime(resultingTick, cell.timeUnit, cfg.timescale), inputSlope, true);
             energyVec.push_back(energy);
+
+            // std::cout << "[output slope -> " << inputSlope << "], [delay  -> " << delay << "], [input slope -> " << ev.inputSlope << "], [output cap. -> " << eventOutputCap << "], [power -> " << eventPower << "], [energy -> " << energy.energy << "]" << std::endl;
 
             if (wireStates.at(outputWire) == result) {
                 continue;
