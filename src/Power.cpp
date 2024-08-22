@@ -1,4 +1,5 @@
 #include "Power.hpp"
+#include <cmath>
 
 std::ostream& operator<< (std::ostream& os, const Energy& e) {
     os << "Energy(" << e.energy << ", " << e.startTick << ", " << e.endTick << ", " << e.dynamic << ")";
