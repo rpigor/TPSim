@@ -2,6 +2,7 @@
 
 #include "VerilogParser.hpp"
 #include "BooleanParser.hpp"
+#include "CellLibrary.hpp"
 #include <boost/logic/tribool.hpp>
 #include <iostream>
 #include <string>
@@ -19,14 +20,14 @@ class Simulator {
 private:
 
     const Module& module;
-    const std::unordered_map<std::string, Cell>& lib;
+    const CellLibrary& lib;
     std::unordered_map<std::string, boost::tribool> wireStates;
     std::unordered_map<std::string, std::vector<Expression>> cellOutputExpressions;
 
 public:
 
     Simulator() = delete;
-    Simulator(const Module& module, const std::unordered_map<std::string, Cell>& lib);
+    Simulator(const Module& module, const CellLibrary& lib);
 
     void simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, const SimulationConfig& cfg, std::ostream& os);
 

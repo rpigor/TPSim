@@ -10,7 +10,7 @@
 
 using namespace boost;
 
-Simulator::Simulator(const Module& module, const std::unordered_map<std::string, Cell>& lib)
+Simulator::Simulator(const Module& module, const CellLibrary& lib)
 : module(module), lib(lib) {
     for (auto& w : module.wires) {
         wireStates[w] = indeterminate;
@@ -25,7 +25,7 @@ Simulator::Simulator(const Module& module, const std::unordered_map<std::string,
     }
 
     BooleanParser<std::string::iterator> boolParser;
-    for (auto& t : lib) {
+    for (auto& t : lib.cells) {
         std::string cellName = t.first;
         Cell cell = t.second;
         for (unsigned int outIdx = 0; outIdx < cell.bitFunctions.size(); outIdx++) {
@@ -42,10 +42,8 @@ Simulator::Simulator(const Module& module, const std::unordered_map<std::string,
     }
 }
 
-
-
 BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, const std::string& output) const {
-    Cell cell = lib.at(cellName);
+    Cell cell = lib.cells.at(cellName);
     auto outIt = std::find(cell.outputs.begin(), cell.outputs.end(), output);
     unsigned int outIdx = std::distance(cell.outputs.begin(), outIt);
     return boost::apply_visitor(BooleanFunctionVisitor(), cellOutputExpressions.at(cell.name)[outIdx]);
@@ -54,7 +52,7 @@ BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, co
 double Simulator::computeOutputCapacitance(const std::string& outputWire, boost::tribool newState) const {
     double outputCap = 0.0;
     for (auto& g : module.gates) {
-        Cell cell = lib.at(g.cell);
+        Cell cell = lib.cells.at(g.cell);
 
         auto inputIt = g.net2input.find(outputWire);
         bool affectsGateInput = inputIt != g.net2input.end();
@@ -98,7 +96,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
         // handles gates affected by the event
         for (auto& g : module.gates) {
-            Cell cell = lib.at(g.cell);
+            Cell cell = lib.cells.at(g.cell);
 
             auto inputIt = g.net2input.find(ev.wire);
             bool affectsGateInput = inputIt != g.net2input.end();
@@ -127,12 +125,12 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             // estimate Event parameters
             double outputCap = computeOutputCapacitance(outputWire, result);
             Arc arc{inputPin, outputPin};
-            double delay = indeterminate(result) ? 0.0 : Estimator::estimate(lib.at(cell.name).delay, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
-            double inputSlope = indeterminate(result) ? 0.0 : Estimator::estimate(lib.at(cell.name).outputSlope, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
+            double delay = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).delay, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
+            double inputSlope = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).outputSlope, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             unsigned long resultingTick = ev.tick + Units::timeToTick(delay, cell.timeUnit, cfg.timescale);
 
             // estimate energy
-            double eventPower = indeterminate(result) ? 0.0 : Estimator::estimate(lib.at(cell.name).power, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
+            double eventPower = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).power, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             Energy energy = Estimator::computeEnergy(eventPower, cell.timeUnit, cfg.timescale, Units::tickToTime(resultingTick, cell.timeUnit, cfg.timescale), inputSlope, true);
             energyVec.push_back(energy);
 

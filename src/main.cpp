@@ -7,8 +7,8 @@
 #include <vector>
 #include <unordered_map>
 
-// externally defined standard cell library; see CellLibrary.hpp
-extern std::unordered_map<std::string, Cell> cellLib;
+// externally defined standard cell library; see CellLibrary.cpp
+extern CellLibrary cellLib;
 
 int main(const int argc, const char* argv[]) {
 
@@ -37,7 +37,7 @@ int main(const int argc, const char* argv[]) {
 
     // parse Verilog
     std::string netlistFile = opt.getNetlistPath();
-    VerilogParser verilogParser(cellLib);
+    VerilogParser verilogParser(cellLib.cells);
     try {
         verilogParser.read(netlistFile);
     }
