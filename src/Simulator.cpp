@@ -7,6 +7,7 @@
 #include <iostream>
 #include <algorithm>
 #include <ctime>
+#include <cmath>
 
 using namespace boost;
 
@@ -130,8 +131,10 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             unsigned long resultingTick = ev.tick + Units::timeToTick(delay, cell.timeUnit, cfg.timescale);
 
             // estimate energy
-            double eventPower = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).power, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
-            Energy energy = Estimator::computeEnergy(eventPower, cell.timeUnit, cfg.timescale, Units::tickToTime(resultingTick, cell.timeUnit, cfg.timescale), inputSlope, true);
+            double internalEnergy = indeterminate(result) ? 0.0 : std::fabs(Estimator::estimate(lib.cells.at(cell.name).power, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation));
+            double switchingEnergy = result ? outputCap*std::pow(lib.vdd, 2) : 0.0; // current is only drawn from the power supply when the output is rising
+            unsigned long eventEndTick = Estimator::estimateEndTime(resultingTick, inputSlope, cell.timeUnit, cfg.timescale);
+            Energy energy{resultingTick, eventEndTick, internalEnergy + switchingEnergy, true};
             energyVec.push_back(energy);
 
             if (wireStates.at(outputWire) == result) {
