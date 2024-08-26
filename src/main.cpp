@@ -61,6 +61,7 @@ int main(const int argc, const char* argv[]) {
     SimulationConfig cfg{
         opt.getTimescale(),
         opt.getPeriod(),
+        opt.getStimuliSlope(),
         opt.getTimeout(),
         opt.isExtrapolationEnabled()
     };

@@ -12,6 +12,7 @@
 struct SimulationConfig {
     const std::string& timescale;
     unsigned long clockPeriod;
+    double stimuliSlope;
     unsigned long timeLimit;
     bool allowExtrapolation;
 };

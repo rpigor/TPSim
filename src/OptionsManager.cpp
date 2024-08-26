@@ -16,7 +16,8 @@ void OptionsManager::parseCLI(int argc, const char* argv[]) {
         ("stimuli,s",               po::value<std::string>()->required(),                           "Input vector file")
         ("output,o",                po::value<std::string>(),                                       "Output VCD file")
         ("timescale",               po::value<std::string>(&timescale)->default_value("ps"),        "Simulation timescale")
-        ("period",                  po::value<unsigned long>(&period)->default_value(10000),        "Input vector clock period")
+        ("period",                  po::value<unsigned long>(&period)->default_value(10000),        "Input stimuli clock period")
+        ("slope",                   po::value<double>(&stimuliSlope)->default_value(0.0),           "Input stimuli slope")
         ("timeout",                 po::value<unsigned long>(&timeout)->default_value(ULONG_MAX),   "Simulation time limit")
         ("disable-extrapolation",                                                                   "Disable LUT extrapolation");
 
@@ -48,6 +49,10 @@ void OptionsManager::parseCLI(int argc, const char* argv[]) {
     outputFileSet = vm.count("output") != 0;
     if (outputFileSet) {
         outputPath = std::filesystem::path(vm["output"].as<std::string>());
+    }
+
+    if (stimuliSlope < 0.0) {
+        throw InvalidOptionException("slope", std::to_string(stimuliSlope));
     }
 
     if (!Units::isValidUnit(timescale)) {
@@ -87,6 +92,10 @@ const std::string& OptionsManager::getTimescale() const {
 
 unsigned long OptionsManager::getPeriod() const {
     return period;
+}
+
+double OptionsManager::getStimuliSlope() const {
+    return stimuliSlope;
 }
 
 unsigned long OptionsManager::getTimeout() const {

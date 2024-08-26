@@ -14,7 +14,7 @@ private:
 public:
 
     EventQueue() = default;
-    EventQueue(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, const std::vector<std::string>& inputNames, unsigned long clockPeriod);
+    EventQueue(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, const std::vector<std::string>& inputNames, unsigned long clockPeriod, double inputSlope);
     void push(const Event& ev);
     void pop();
     Event top() const;

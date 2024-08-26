@@ -78,7 +78,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     vcd.printVarDumpInit();
 
     // initiailize event queue with external stimuli
-    EventQueue events(stimuli, module.inputs, cfg.clockPeriod);
+    EventQueue events(stimuli, module.inputs, cfg.clockPeriod, cfg.stimuliSlope);
 
     std::vector<Energy> energyVec;
 

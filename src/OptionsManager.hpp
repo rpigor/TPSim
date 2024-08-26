@@ -35,6 +35,7 @@ private:
     bool outputFileSet;
     std::string timescale;
     unsigned long period;
+    double stimuliSlope;
     unsigned long timeout;
     bool extrapolationEnabled;
 
@@ -54,6 +55,7 @@ public:
     bool isOutputFileSet() const;
     const std::string& getTimescale() const;
     unsigned long getPeriod() const;
+    double getStimuliSlope() const;
     unsigned long getTimeout() const;
     bool isExtrapolationEnabled() const;
 
