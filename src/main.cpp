@@ -62,6 +62,7 @@ int main(const int argc, const char* argv[]) {
         opt.getTimescale(),
         opt.getPeriod(),
         opt.getStimuliSlope(),
+        opt.getOutputCapacitance(),
         opt.getTimeout(),
         opt.isExtrapolationEnabled()
     };

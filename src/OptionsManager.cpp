@@ -18,6 +18,7 @@ void OptionsManager::parseCLI(int argc, const char* argv[]) {
         ("timescale",               po::value<std::string>(&timescale)->default_value("ps"),        "Simulation timescale")
         ("period",                  po::value<unsigned long>(&period)->default_value(10000),        "Input stimuli clock period")
         ("slope",                   po::value<double>(&stimuliSlope)->default_value(0.0),           "Input stimuli slope")
+        ("output-capacitance",      po::value<double>(&outputCapacitance)->default_value(0.0),      "Output capacitance")
         ("timeout",                 po::value<unsigned long>(&timeout)->default_value(ULONG_MAX),   "Simulation time limit")
         ("disable-extrapolation",                                                                   "Disable LUT extrapolation");
 
@@ -53,6 +54,10 @@ void OptionsManager::parseCLI(int argc, const char* argv[]) {
 
     if (stimuliSlope < 0.0) {
         throw InvalidOptionException("slope", std::to_string(stimuliSlope));
+    }
+
+    if (outputCapacitance < 0.0) {
+        throw InvalidOptionException("output-capacitance", std::to_string(outputCapacitance));
     }
 
     if (!Units::isValidUnit(timescale)) {
@@ -96,6 +101,10 @@ unsigned long OptionsManager::getPeriod() const {
 
 double OptionsManager::getStimuliSlope() const {
     return stimuliSlope;
+}
+
+double OptionsManager::getOutputCapacitance() const {
+    return outputCapacitance;
 }
 
 unsigned long OptionsManager::getTimeout() const {

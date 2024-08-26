@@ -13,6 +13,7 @@ struct SimulationConfig {
     const std::string& timescale;
     unsigned long clockPeriod;
     double stimuliSlope;
+    double outputCapacitance;
     unsigned long timeLimit;
     bool allowExtrapolation;
 };
@@ -35,6 +36,6 @@ public:
 private:
 
     BooleanFunction getCellOutputFunction(const std::string& cellName, const std::string& output) const;
-    double computeOutputCapacitance(const std::string& outputWire, boost::tribool newState) const;
+    double computeOutputCapacitance(const std::string& outputWire, boost::tribool newState, double defaultOutputCapacitance) const;
 
 };

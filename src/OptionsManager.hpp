@@ -36,6 +36,7 @@ private:
     std::string timescale;
     unsigned long period;
     double stimuliSlope;
+    double outputCapacitance;
     unsigned long timeout;
     bool extrapolationEnabled;
 
@@ -56,6 +57,7 @@ public:
     const std::string& getTimescale() const;
     unsigned long getPeriod() const;
     double getStimuliSlope() const;
+    double getOutputCapacitance() const;
     unsigned long getTimeout() const;
     bool isExtrapolationEnabled() const;
 

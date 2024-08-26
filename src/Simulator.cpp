@@ -50,7 +50,8 @@ BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, co
     return boost::apply_visitor(BooleanFunctionVisitor(), cellOutputExpressions.at(cell.name)[outIdx]);
 }
 
-double Simulator::computeOutputCapacitance(const std::string& outputWire, boost::tribool newState) const {
+double Simulator::computeOutputCapacitance(const std::string& outputWire, boost::tribool newState, double defaultOutputCapacitance) const {
+    int affectedGates = 0;
     double outputCap = 0.0;
     for (auto& g : module.gates) {
         Cell cell = lib.cells.at(g.cell);
@@ -61,6 +62,11 @@ double Simulator::computeOutputCapacitance(const std::string& outputWire, boost:
             continue;
         }
         outputCap += cell.pinCapacitance.at(inputIt->second);
+        affectedGates++;
+    }
+
+    if (affectedGates == 0) { // last stage
+        return defaultOutputCapacitance;
     }
 
     return outputCap;
@@ -124,7 +130,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             tribool result = func(inputStates);
 
             // estimate Event parameters
-            double outputCap = computeOutputCapacitance(outputWire, result);
+            double outputCap = computeOutputCapacitance(outputWire, result, cfg.outputCapacitance);
             Arc arc{inputPin, outputPin};
             double delay = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).delay, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             double inputSlope = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).outputSlope, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
