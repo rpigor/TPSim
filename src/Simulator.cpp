@@ -89,6 +89,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
     // simulation loop
     unsigned long prevTime = events.top().tick;
+    double prevSlope = events.top().inputSlope;
     VCDBuffer sameTickEvs;
     while (!events.empty()) {
         Event ev = events.top();
@@ -135,15 +136,27 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             double inputSlope = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).outputSlope, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             unsigned long resultingTick = ev.tick + Units::timeToTick(delay, cell.timeUnit, cfg.timescale);
 
-            // estimate energy
+            // estimate dynamic energy
             double internalEnergy = indeterminate(result) ? 0.0 : std::fabs(Estimator::estimate(lib.cells.at(cell.name).power, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation));
             double switchingEnergy = result ? outputCap*lib.vdd*lib.vdd : 0.0; // current is only drawn from the power supply when the output is rising
             if (wireStates.at(outputWire) == result) { // if output doesn't change, switching energy is not consumed
                 switchingEnergy = 0.0;
             }
             unsigned long eventEndTick = Estimator::estimateEndTime(resultingTick, inputSlope, cell.timeUnit, cfg.timescale);
-            Energy energy{resultingTick, eventEndTick, internalEnergy + switchingEnergy, true};
-            energyVec.push_back(energy);
+            energyVec.push_back({resultingTick, eventEndTick, internalEnergy + switchingEnergy, true});
+
+            // estimate leakage energy
+            if (ev.tick != 0) { // ignore first event
+                std::string state;
+                for (auto tb : inputStates) {
+                    state.push_back(tb ? '1' : '0');
+                }
+                double leakagePower = lib.cells.at(cell.name).leakage.at(state);
+                unsigned long startLeakTick = Estimator::estimateEndTime(prevTime, prevSlope, cell.timeUnit, cfg.timescale);
+                double leakageInterval = Units::tickToTime(ev.tick - startLeakTick, cell.timeUnit, cfg.timescale); // from the end of the previous event to the start of the current event
+                double leakageEnergy = leakagePower*leakageInterval / (Units::unitScale(cell.timeUnit)*Units::unitScale(cell.leakagePowerUnit));
+                energyVec.push_back({startLeakTick, ev.tick, leakageEnergy, false});
+            }
 
             if (wireStates.at(outputWire) == result) {
                 continue;

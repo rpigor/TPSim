@@ -114,7 +114,11 @@ std::unordered_map<std::string, double> invX1Capacitance = {
 std::unordered_map<Arc, LUT> invX1Power = {
     { {"A", "Y"}, invX1PowerLUT}
 };
-Cell invX1 = {"INVX1", {"A"}, {"Y"}, {"!A"}, "pF", invX1Capacitance, "ns", invX1Delay, invX1Slope, "nW", invX1Power};
+std::unordered_map<std::string, double> invX1Leakage = {
+    {"0", 0.00093},
+    {"1", 0.31171}
+};
+Cell invX1 = {"INVX1", {"A"}, {"Y"}, {"!A"}, "pF", invX1Capacitance, "ns", invX1Delay, invX1Slope, "pJ", invX1Power, "nW", invX1Leakage};
 
 LUT and2ADelayLUT = {
     {0.01,0.01735,0.02602,0.03903,0.05855,0.08782,0.13172,0.19757,0.29634,0.44449,0.6667,1.0,1.5},
@@ -336,7 +340,13 @@ std::unordered_map<Arc, LUT> and2Power = {
     { {"A", "Y"}, and2APowerLUT },
     { {"B", "Y"}, and2BPowerLUT }
 };
-Cell and2 = {"AND2X1", {"A", "B"}, {"Y"}, {"A&B"}, "pF", and2Capacitance, "ns", and2Delay, and2Slope, "nW", and2Power};
+std::unordered_map<std::string, double> and2Leakage = {
+    {"00", 0.14254},
+    {"01", 0.14355},
+    {"10", 0.14361},
+    {"11", 0.12426}
+};
+Cell and2 = {"AND2X1", {"A", "B"}, {"Y"}, {"A&B"}, "pF", and2Capacitance, "ns", and2Delay, and2Slope, "pJ", and2Power, "nW", and2Leakage};
 
 std::unordered_map<std::string, Cell> cells =
 {

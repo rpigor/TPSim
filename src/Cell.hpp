@@ -44,4 +44,6 @@ struct Cell {
     std::unordered_map<Arc, LUT> outputSlope;
     std::string powerUnit;
     std::unordered_map<Arc, LUT> power;
+    std::string leakagePowerUnit;
+    std::unordered_map<std::string, double> leakage;
 };
