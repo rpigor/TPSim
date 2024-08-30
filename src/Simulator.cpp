@@ -138,12 +138,14 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
             // estimate dynamic energy
             double internalEnergy = indeterminate(result) ? 0.0 : std::fabs(Estimator::estimate(lib.cells.at(cell.name).power, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation));
+            double internalEnergyScaled = internalEnergy / Units::unitScale(cell.powerUnit);
             double switchingEnergy = result ? outputCap*lib.vdd*lib.vdd : 0.0; // current is only drawn from the power supply when the output is rising
+            double switchingEnergyScaled = switchingEnergy / Units::unitScale(cell.capacitanceUnit);
             if (wireStates.at(outputWire) == result) { // if output doesn't change, switching energy is not consumed
                 switchingEnergy = 0.0;
             }
             unsigned long eventEndTick = Estimator::estimateEndTime(resultingTick, inputSlope, cell.timeUnit, cfg.timescale);
-            energyVec.push_back({resultingTick, eventEndTick, internalEnergy + switchingEnergy, true});
+            energyVec.push_back({resultingTick, eventEndTick, internalEnergyScaled + switchingEnergyScaled, true});
 
             // estimate leakage energy
             if (ev.tick != 0) { // ignore first event
