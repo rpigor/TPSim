@@ -68,7 +68,7 @@ LUT invX1SlopeLUT = {
         {0.1372,0.2666,0.2873,0.3107,0.3369,0.3667,0.3989,0.4354,0.4748,0.5174,0.5648,0.6154,0.6699,0.7316,0.7984,0.8831,0.9884,1.1214,1.2893,1.5002}
     }
 };
-LUT invX1PowerLUT = {
+LUT invX1InternalPowerLUT = {
     {0.01,0.01735,0.02602,0.03903,0.05855,0.08782,0.13172,0.19757,0.29634,0.44449,0.6667,1.0,1.5},
     {0.0,0.00894,0.01073,0.01288,0.01545,0.01854,0.02225,0.0267,0.03204,0.03845,0.04614,0.05537,0.06644,0.07973,0.09568,0.11482,0.13779,0.16535,0.19842,0.23811},
     {
@@ -111,14 +111,14 @@ std::unordered_map<Arc, LUT> invX1Slope = {
 std::unordered_map<std::string, double> invX1Capacitance = {
     {"A", 0.00295}
 };
-std::unordered_map<Arc, LUT> invX1Power = {
-    { {"A", "Y"}, invX1PowerLUT}
+std::unordered_map<Arc, LUT> invX1InternalPower = {
+    { {"A", "Y"}, invX1InternalPowerLUT}
 };
 std::unordered_map<std::string, double> invX1Leakage = {
     {"0", 0.00093},
     {"1", 0.31171}
 };
-Cell invX1 = {"INVX1", {"A"}, {"Y"}, {"!A"}, "pF", invX1Capacitance, "ns", invX1Delay, invX1Slope, "pJ", invX1Power, "nW", invX1Leakage};
+Cell invX1 = {"INVX1", {"A"}, {"Y"}, {"!A"}, "pF", invX1Capacitance, "ns", invX1Delay, invX1Slope, "pJ", invX1InternalPower, "nW", invX1Leakage};
 
 LUT and2ADelayLUT = {
     {0.01,0.01735,0.02602,0.03903,0.05855,0.08782,0.13172,0.19757,0.29634,0.44449,0.6667,1.0,1.5},
@@ -188,7 +188,7 @@ LUT and2ASlopeLUT = {
         {0.0395,0.0944,0.1035,0.1149,0.1287,0.146,0.1675,0.1937,0.2257,0.2647,0.3118,0.3696,0.4372,0.5192,0.6176,0.7365,0.8809,1.049,1.2566,1.5015}
     }
 };
-LUT and2APowerLUT = {
+LUT and2AInternalPowerLUT = {
     {0.01,0.01735,0.02602,0.03903,0.05855,0.08782,0.13172,0.19757,0.29634,0.44449,0.6667,1.0,1.5},
     {0.0,0.00841,0.01009,0.01211,0.01453,0.01743,0.02091,0.02509,0.03011,0.03613,0.04335,0.05202,0.06242,0.0749,0.08988,0.10786,0.12943,0.15532,0.18638,0.22366},
     {
@@ -290,7 +290,7 @@ LUT and2BSlopeLUT = {
         {0.0372,0.0919,0.1011,0.1125,0.1264,0.1435,0.1649,0.1911,0.2228,0.2616,0.3091,0.3654,0.4334,0.5159,0.6157,0.7347,0.8778,1.0471,1.2545,1.4997}
     }
 };
-LUT and2BPowerLUT = {
+LUT and2BInternalPowerLUT = {
     {0.01,0.01735,0.02602,0.03903,0.05855,0.08782,0.13172,0.19757,0.29634,0.44449,0.6667,1.0,1.5},
     {0.0,0.00841,0.01009,0.01211,0.01453,0.01743,0.02091,0.02509,0.03011,0.03613,0.04335,0.05202,0.06242,0.0749,0.08988,0.10786,0.12943,0.15532,0.18638,0.22366},
     {
@@ -336,9 +336,9 @@ std::unordered_map<std::string, double> and2Capacitance = {
     {"A", 0.0024},
     {"B", 0.0023}
 };
-std::unordered_map<Arc, LUT> and2Power = {
-    { {"A", "Y"}, and2APowerLUT },
-    { {"B", "Y"}, and2BPowerLUT }
+std::unordered_map<Arc, LUT> and2InternalPower = {
+    { {"A", "Y"}, and2AInternalPowerLUT },
+    { {"B", "Y"}, and2BInternalPowerLUT }
 };
 std::unordered_map<std::string, double> and2Leakage = {
     {"00", 0.14254},
@@ -346,7 +346,7 @@ std::unordered_map<std::string, double> and2Leakage = {
     {"10", 0.14361},
     {"11", 0.12426}
 };
-Cell and2 = {"AND2X1", {"A", "B"}, {"Y"}, {"A&B"}, "pF", and2Capacitance, "ns", and2Delay, and2Slope, "pJ", and2Power, "nW", and2Leakage};
+Cell and2 = {"AND2X1", {"A", "B"}, {"Y"}, {"A&B"}, "pF", and2Capacitance, "ns", and2Delay, and2Slope, "pJ", and2InternalPower, "nW", and2Leakage};
 
 std::unordered_map<std::string, Cell> cells =
 {

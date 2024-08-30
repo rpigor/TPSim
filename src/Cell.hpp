@@ -42,8 +42,8 @@ struct Cell {
     std::string timeUnit;
     std::unordered_map<Arc, LUT> delay;
     std::unordered_map<Arc, LUT> outputSlope;
-    std::string powerUnit;
-    std::unordered_map<Arc, LUT> power;
+    std::string internalPowerUnit;
+    std::unordered_map<Arc, LUT> internalPower;
     std::string leakagePowerUnit;
     std::unordered_map<std::string, double> leakage;
 };
