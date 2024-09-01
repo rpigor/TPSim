@@ -139,7 +139,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             // estimate dynamic energy
             double internalEnergy = indeterminate(result) ? 0.0 : std::fabs(Estimator::estimate(lib.cells.at(cell.name).internalPower, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation));
             double internalEnergyScaled = internalEnergy / Units::unitScale(cell.internalPowerUnit);
-            double switchingEnergy = result ? outputCap*lib.vdd*lib.vdd : 0.0; // current is only drawn from the power supply when the output is rising
+            double switchingEnergy = outputCap*lib.vdd*lib.vdd / 2;
             double switchingEnergyScaled = switchingEnergy / Units::unitScale(cell.capacitanceUnit);
             if (wireStates.at(outputWire) == result) { // if output doesn't change, switching energy is not consumed
                 switchingEnergy = 0.0;
@@ -180,6 +180,14 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     for (auto& e : energyVec) {
         std::cout << e << std::endl;
     }
-    std::cout << "Total energy: " << accumulateEnergy(energyVec) << std::endl;
+
+    double totalEnergy = Power::accumulateEnergy(energyVec);
+    double dynEnergy = Power::accumulateDynamicEnergy(energyVec);
+    double staticEnergy = Power::accumulateStaticEnergy(energyVec);
+    double dynPct = 100 * (dynEnergy / totalEnergy);
+    double staticPct = 100 - dynPct;
+    std::cout << "Total energy:\t" << totalEnergy << std::endl;
+    std::cout << "Dynamic energy:\t" << dynEnergy  << " (" << dynPct << "%)" << std::endl;
+    std::cout << "Static energy:\t" << staticEnergy << " (" << staticPct << "%)" << std::endl;
     */
 }

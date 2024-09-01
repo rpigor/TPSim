@@ -12,4 +12,10 @@ struct Energy {
     friend std::ostream& operator<< (std::ostream& os, const Energy& e);
 };
 
-double accumulateEnergy(const std::vector<Energy>& energies);
+namespace Power {
+
+    double accumulateEnergy(const std::vector<Energy>& energies);
+    double accumulateDynamicEnergy(const std::vector<Energy>& energies);
+    double accumulateStaticEnergy(const std::vector<Energy>& energies);
+
+}
