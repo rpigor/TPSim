@@ -2,11 +2,13 @@
 
 #include <ostream>
 #include <vector>
+#include <string>
 
 struct Energy {
     unsigned long startTick;
     unsigned long endTick;
     double energy;
+    std::string instance;
     bool dynamic;
 
     friend std::ostream& operator<< (std::ostream& os, const Energy& e);

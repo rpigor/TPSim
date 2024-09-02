@@ -4,8 +4,6 @@
 #include "StimuliParser.hpp"
 #include "CellLibrary.hpp"
 #include <string>
-#include <vector>
-#include <unordered_map>
 
 // externally defined standard cell library; see CellLibrary.cpp
 extern CellLibrary cellLib;

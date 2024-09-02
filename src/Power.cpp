@@ -2,7 +2,7 @@
 #include <cmath>
 
 std::ostream& operator<< (std::ostream& os, const Energy& e) {
-    os << "Energy(" << e.energy << ", " << e.startTick << ", " << e.endTick << ", " << e.dynamic << ")";
+    os << "Energy(" << e.energy << ", " << e.startTick << ", " << e.endTick << ", " << e.instance << ", " << e.dynamic << ")";
     return os;
 }
 

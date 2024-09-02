@@ -145,7 +145,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
                 switchingEnergy = 0.0;
             }
             unsigned long eventEndTick = Estimator::estimateEndTime(resultingTick, inputSlope, cell.timeUnit, cfg.timescale);
-            energyVec.push_back({resultingTick, eventEndTick, internalEnergyScaled + switchingEnergyScaled, true});
+            energyVec.push_back({resultingTick, eventEndTick, internalEnergyScaled + switchingEnergyScaled, g.name, true});
 
             // estimate leakage energy
             if (ev.tick != 0) { // ignore first event
@@ -157,7 +157,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
                 unsigned long startLeakTick = Estimator::estimateEndTime(prevTime, prevSlope, cell.timeUnit, cfg.timescale);
                 double leakageInterval = Units::tickToTime(ev.tick - startLeakTick, cell.timeUnit, cfg.timescale); // from the end of the previous event to the start of the current event
                 double leakageEnergy = leakagePower*leakageInterval / (Units::unitScale(cell.timeUnit)*Units::unitScale(cell.leakagePowerUnit));
-                energyVec.push_back({startLeakTick, ev.tick, leakageEnergy, false});
+                energyVec.push_back({startLeakTick, ev.tick, leakageEnergy, g.name, false});
             }
 
             if (wireStates.at(outputWire) == result) {
