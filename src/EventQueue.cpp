@@ -13,7 +13,7 @@ EventQueue::EventQueue(const std::unordered_map<std::string, std::vector<boost::
             }
 
             Event ev{inputName, inputSlope, tb, stimuliTime};
-            list.push_back(ev);
+            push(ev);
 
             prevEvent = ev;
             stimuliTime += clockPeriod;
@@ -23,20 +23,17 @@ EventQueue::EventQueue(const std::unordered_map<std::string, std::vector<boost::
 }
 
 void EventQueue::push(const Event& ev) {
-    list.push_back(ev);
+    queue.push(ev);
 }
 
 void EventQueue::pop() {
-    auto it = std::min_element(list.begin(), list.end(), [](const Event& i, const Event& j) { return i < j; });
-    Event t = *it;
-    list.erase(it);
+    queue.pop();
 }
 
 Event EventQueue::top() const {
-    auto it = std::min_element(list.begin(), list.end(), [](const Event& i, const Event& j) { return i < j; });
-    return *it;
+    return queue.top();
 }
 
 bool EventQueue::empty() const {
-    return list.empty();
+    return queue.empty();
 }

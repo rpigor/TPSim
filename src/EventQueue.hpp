@@ -5,11 +5,12 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <queue>
 
 class EventQueue {
 private:
 
-    std::vector<Event> list;
+    std::priority_queue<Event, std::vector<Event>, std::greater<Event>> queue;
 
 public:
 
