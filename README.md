@@ -6,10 +6,10 @@
 
 ### Dependencies
 
-This project mainly depends on Boost (>= 1.80.0). It also uses Catch2 as the testing framework. On Ubuntu, these libraries can be installed through the following command:
+This project mainly depends on Boost (>= 1.80.0). The Verilog parser depends on Flex and Bison. The project also uses Catch2 as the testing framework. On Ubuntu, these libraries can be installed through the following command:
 
 ```sh
-sudo apt install libboost-all-dev
+sudo apt install libboost-all-dev flex bison
 ```
 
 ### Steps
