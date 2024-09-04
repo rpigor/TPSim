@@ -18,6 +18,7 @@ add_compile_options(
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/src/verilog)
+include_directories(${PROJECT_SOURCE_DIR}/src/liberty)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 find_package(BISON REQUIRED)
@@ -36,13 +37,15 @@ ADD_FLEX_BISON_DEPENDENCY(verilog_lexer verilog_parser)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 file(GLOB_RECURSE SRCFILES "src/*.cpp")
+file(GLOB_RECURSE LIBERTYFILES "src/liberty/*.cpp")
 add_executable(${PROJECT_NAME}
   ${SRCFILES}
+  ${LIBERTYFILES}
   ${FLEX_verilog_lexer_OUTPUTS}
   ${BISON_verilog_parser_OUTPUTS}
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "tpsim")
-target_link_libraries(${PROJECT_NAME} Boost::program_options)
+target_link_libraries(${PROJECT_NAME} Boost::boost Boost::program_options)
 
 
 file(GLOB_RECURSE TESTFILES "test/*.cpp")
@@ -50,8 +53,10 @@ add_executable(TPSimTest
                 ${TESTFILES}
                 ${PROJECT_SOURCE_DIR}/src/Estimator.cpp
                 ${PROJECT_SOURCE_DIR}/src/Units.cpp
-                ${PROJECT_SOURCE_DIR}/src/EventQueue.cpp)
+                ${PROJECT_SOURCE_DIR}/src/EventQueue.cpp
+                ${PROJECT_SOURCE_DIR}/src/liberty/LibertyLibrary.cpp)
 set_target_properties(TPSimTest PROPERTIES OUTPUT_NAME "test")
+target_compile_definitions(TPSimTest PUBLIC LIBERTY_TEST_RESOURCE_PATH="${PROJECT_SOURCE_DIR}/test")
 target_link_libraries(TPSimTest PRIVATE Catch2::Catch2WithMain)
 
 include(CTest)

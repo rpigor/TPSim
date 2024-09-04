@@ -29,6 +29,7 @@ class OptionsManager {
 private:
 
     bool help;
+    std::filesystem::path cellLibraryPath;
     std::filesystem::path netlistPath;
     std::filesystem::path stimuliPath;
     std::filesystem::path outputPath;
@@ -50,6 +51,7 @@ public:
     void printUsage(std::ostream& os) const;
 
     bool isHelp() const;
+    const std::filesystem::path& getCellLibraryPath() const;
     const std::filesystem::path& getNetlistPath() const;
     const std::filesystem::path& getStimuliPath() const;
     const std::filesystem::path& getOutputPath() const;

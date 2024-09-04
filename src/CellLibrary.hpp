@@ -6,8 +6,10 @@
 
 struct CellLibrary {
     std::string name;
-    std::string corner;
-    double vdd;
-    double temperature;
+    double voltage;
+    std::string timeUnit;
+    std::string voltageUnit;
+    std::string capacitanceUnit;
+    std::string leakagePowerUnit;
     std::unordered_map<std::string, Cell> cells;
 };

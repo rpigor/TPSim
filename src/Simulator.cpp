@@ -95,8 +95,8 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
         Event ev = events.top();
         events.pop();
 
-        if (ev.tick > cfg.timeLimit) {
-            break;
+        if (ev.tick > cfg.timeLimit) { // ignore events happening after simulation stop time
+            continue;
         }
 
         wireStates[ev.wire] = ev.value;
@@ -118,7 +118,6 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
                     inputStates.push_back(ev.value);
                     continue;
                 }
-
                 std::string inWire = g.input2net.at(in);
                 inputStates.push_back(wireStates.at(inWire));
             }
@@ -134,17 +133,17 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             Arc arc{inputPin, outputPin};
             double delay = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).delay, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             double inputSlope = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).outputSlope, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
-            unsigned long resultingTick = ev.tick + Units::timeToTick(delay, cell.timeUnit, cfg.timescale);
+            unsigned long resultingTick = ev.tick + Units::timeToTick(delay, lib.timeUnit, cfg.timescale);
 
             // estimate dynamic energy
             double internalEnergy = indeterminate(result) ? 0.0 : std::fabs(Estimator::estimate(lib.cells.at(cell.name).internalPower, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation));
-            double internalEnergyScaled = internalEnergy / Units::unitScale(cell.internalPowerUnit);
-            double switchingEnergy = outputCap*lib.vdd*lib.vdd / 2;
-            double switchingEnergyScaled = switchingEnergy / Units::unitScale(cell.capacitanceUnit);
+            double internalEnergyScaled = internalEnergy / Units::unitScale("pJ"); // TODO: remove hard coded value!!
+            double switchingEnergy = outputCap*lib.voltage*lib.voltage / 2;
+            double switchingEnergyScaled = switchingEnergy / Units::unitScale(lib.capacitanceUnit);
             if (wireStates.at(outputWire) == result) { // if output doesn't change, switching energy is not consumed
                 switchingEnergy = 0.0;
             }
-            unsigned long eventEndTick = Estimator::estimateEndTime(resultingTick, inputSlope, cell.timeUnit, cfg.timescale);
+            unsigned long eventEndTick = Estimator::estimateEndTime(resultingTick, inputSlope, lib.timeUnit, cfg.timescale);
             energyVec.push_back({resultingTick, eventEndTick, internalEnergyScaled + switchingEnergyScaled, g.name, true});
 
             // estimate leakage energy
@@ -154,9 +153,9 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
                     state.push_back(tb ? '1' : '0');
                 }
                 double leakagePower = lib.cells.at(cell.name).leakage.at(state);
-                unsigned long startLeakTick = Estimator::estimateEndTime(prevTime, prevSlope, cell.timeUnit, cfg.timescale);
-                double leakageInterval = Units::tickToTime(ev.tick - startLeakTick, cell.timeUnit, cfg.timescale); // from the end of the previous event to the start of the current event
-                double leakageEnergy = leakagePower*leakageInterval / (Units::unitScale(cell.timeUnit)*Units::unitScale(cell.leakagePowerUnit));
+                unsigned long startLeakTick = Estimator::estimateEndTime(prevTime, prevSlope, lib.timeUnit, cfg.timescale);
+                double leakageInterval = Units::tickToTime(ev.tick - startLeakTick, lib.timeUnit, cfg.timescale); // from the end of the previous event to the start of the current event
+                double leakageEnergy = leakagePower*leakageInterval / (Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));
                 energyVec.push_back({startLeakTick, ev.tick, leakageEnergy, g.name, false});
             }
 

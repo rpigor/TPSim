@@ -12,6 +12,7 @@ OptionsManager::OptionsManager()
 void OptionsManager::parseCLI(int argc, const char* argv[]) {
     desc.add_options()
         ("help,h",                                                                                  "Show help message")
+        ("library,l",               po::value<std::string>()->required(),                           "Liberty standard cell library")
         ("netlist,n",               po::value<std::string>()->required(),                           "Verilog netlist file")
         ("stimuli,s",               po::value<std::string>()->required(),                           "Input vector file")
         ("output,o",                po::value<std::string>(),                                       "Output VCD file")
@@ -36,6 +37,11 @@ void OptionsManager::parseCLI(int argc, const char* argv[]) {
     }
 
     po::notify(vm);
+
+    cellLibraryPath = std::filesystem::path(vm["library"].as<std::string>());
+    if (!std::filesystem::exists(cellLibraryPath)) {
+        throw FileNotFoundException("lilbrary", cellLibraryPath);
+    }
 
     netlistPath = std::filesystem::path(vm["netlist"].as<std::string>());
     if (!std::filesystem::exists(netlistPath)) {
@@ -66,13 +72,17 @@ void OptionsManager::parseCLI(int argc, const char* argv[]) {
 }
 
 void OptionsManager::printUsage(std::ostream& os) const {
-    os  << "Usage: ./" << programName << " <netlist file> -s <stimuli file> [options...]\n"
+    os  << "Usage: ./" << programName << " <netlist file> -s <stimuli file> -l <library file> [options...]\n"
         << desc << "\n"
-        << "Example: ./" << programName << " module.v -s inputs.stim -o module.vcd --timescale fs --period 100000\n";
+        << "Example: ./" << programName << " module.v -s inputs.stim -l sky130.lib -o module.vcd --timescale fs --period 100000\n";
 }
 
 bool OptionsManager::isHelp() const {
     return help;
+}
+
+const std::filesystem::path& OptionsManager::getCellLibraryPath() const {
+    return cellLibraryPath;
 }
 
 const std::filesystem::path& OptionsManager::getNetlistPath() const {

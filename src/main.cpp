@@ -1,12 +1,10 @@
 #include "Simulator.hpp"
 #include "OptionsManager.hpp"
+#include "LibertyParser.hpp"
 #include "VerilogParser.hpp"
 #include "StimuliParser.hpp"
-#include "CellLibrary.hpp"
+#include <iostream>
 #include <string>
-
-// externally defined standard cell library; see CellLibrary.cpp
-extern CellLibrary cellLib;
 
 int main(const int argc, const char* argv[]) {
 
@@ -32,6 +30,18 @@ int main(const int argc, const char* argv[]) {
         fileOut.open(opt.getOutputPath());
         os = &fileOut;
     }
+
+    // parse Liberty
+    std::string libFile = opt.getCellLibraryPath();
+    LibertyParser libertyParser;
+    try {
+        libertyParser.read(libFile);
+    }
+    catch (std::runtime_error& e) {
+        std::cerr << "[ ERROR ] While parsing \'" << libFile << "\': " << e.what() << "\n";
+        return EXIT_FAILURE;
+    }
+    CellLibrary cellLib = libertyParser.getLibrary();
 
     // parse Verilog
     std::string netlistFile = opt.getNetlistPath();
