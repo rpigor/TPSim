@@ -31,14 +31,8 @@ Simulator::Simulator(const Module& module, const CellLibrary& lib)
         Cell cell = t.second;
         for (unsigned int outIdx = 0; outIdx < cell.bitFunctions.size(); outIdx++) {
             std::string boolFunc = cell.bitFunctions[outIdx];
-            auto firstIt(std::begin(boolFunc)), lastIt(std::end(boolFunc));
-
-            Expression result;
-            bool ok = boost::spirit::qi::phrase_parse(firstIt, lastIt, boolParser, boost::spirit::qi::space, result);
-            if (!ok) {
-                throw std::runtime_error("\'" + boolFunc + "\' is not a valid boolean expression.");
-            }
-            cellOutputExpressions[cellName].push_back(result);
+            auto expr = BooleanFunctionVisitor::parseExpression(boolFunc, boolParser);
+            cellOutputExpressions[cellName].push_back(expr);
         }
     }
 }
@@ -48,6 +42,17 @@ boost::tribool Simulator::evaluateCellOutput(const std::string& cellName, const 
     auto outIt = std::find(cell.outputs.begin(), cell.outputs.end(), output);
     unsigned int outIdx = std::distance(cell.outputs.begin(), outIt);
     return BooleanFunctionVisitor().evaluateExpression(cellOutputExpressions.at(cellName).at(outIdx), cell.inputs, input);
+}
+
+double Simulator::getInputStateLeakagePower(const std::string& cellName, const std::vector<boost::tribool>& inputState) const {
+    BooleanParser<std::string::iterator> boolParser;
+    for (const auto& leakTuple : lib.cells.at(cellName).leakage) {
+        auto expr = BooleanFunctionVisitor::parseExpression(leakTuple.first, boolParser);
+        if (BooleanFunctionVisitor().evaluateExpression(expr, lib.cells.at(cellName).inputs, inputState)) {
+            return leakTuple.second;
+        }
+    }
+    return 0.0;
 }
 
 double Simulator::computeOutputCapacitance(const std::string& outputWire, boost::tribool newState, double defaultOutputCapacitance) const {
@@ -148,11 +153,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
             // estimate leakage energy
             if (ev.tick != 0) { // ignore first event
-                std::string state;
-                for (auto tb : inputStates) {
-                    state.push_back(tb ? '1' : '0');
-                }
-                double leakagePower = lib.cells.at(cell.name).leakage.at(state);
+                double leakagePower = getInputStateLeakagePower(cell.name, inputStates);
                 unsigned long startLeakTick = Estimator::estimateEndTime(prevTime, prevSlope, lib.timeUnit, cfg.timescale);
                 double leakageInterval = Units::tickToTime(ev.tick - startLeakTick, lib.timeUnit, cfg.timescale); // from the end of the previous event to the start of the current event
                 double leakageEnergy = leakagePower*leakageInterval / (Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));

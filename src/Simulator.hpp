@@ -36,6 +36,7 @@ public:
 private:
 
     boost::tribool evaluateCellOutput(const std::string& cellName, const std::string& output, const std::vector<boost::tribool>& input) const;
+    double getInputStateLeakagePower(const std::string& cellName, const std::vector<boost::tribool>& inputState) const;
     double computeOutputCapacitance(const std::string& outputWire, boost::tribool newState, double defaultOutputCapacitance) const;
 
 };

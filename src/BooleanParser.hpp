@@ -118,6 +118,7 @@ public:
     boost::tribool operator()(const BinaryOperation<AndOp>& b) const;
     boost::tribool operator()(const BinaryOperation<XorOp>& b) const;
 
+    static Expression parseExpression(std::string expression, const BooleanParser<std::string::iterator>& parser);
     boost::tribool evaluateExpression(const Expression& expr, const std::vector<std::string>& cellInputs, const std::vector<boost::tribool>& input);
 
 };
