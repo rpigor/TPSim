@@ -43,11 +43,11 @@ Simulator::Simulator(const Module& module, const CellLibrary& lib)
     }
 }
 
-BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, const std::string& output) const {
+boost::tribool Simulator::evaluateCellOutput(const std::string& cellName, const std::string& output, const std::vector<boost::tribool>& input) const {
     Cell cell = lib.cells.at(cellName);
     auto outIt = std::find(cell.outputs.begin(), cell.outputs.end(), output);
     unsigned int outIdx = std::distance(cell.outputs.begin(), outIt);
-    return BooleanFunctionVisitor::getBooleanFunction(cellOutputExpressions.at(cellName).at(outIdx), cell.bitFunctions.at(outIdx), cell.inputs);
+    return BooleanFunctionVisitor().evaluateExpression(cellOutputExpressions.at(cellName).at(outIdx), cell.inputs, input);
 }
 
 double Simulator::computeOutputCapacitance(const std::string& outputWire, boost::tribool newState, double defaultOutputCapacitance) const {
@@ -126,8 +126,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             // compute new event
             std::string outputPin = cell.outputs[0]; // only a single output is supported!
             std::string outputWire = g.output2net.at(outputPin);
-            auto func = getCellOutputFunction(cell.name, outputPin);
-            tribool result = func(inputStates);
+            tribool result = evaluateCellOutput(cell.name, outputPin, inputStates);
 
             // estimate Event parameters
             double outputCap = computeOutputCapacitance(outputWire, result, cfg.outputCapacitance);

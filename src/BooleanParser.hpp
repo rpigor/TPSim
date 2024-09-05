@@ -104,14 +104,20 @@ private:
 
 typedef std::function<boost::tribool(const std::vector<boost::tribool>&)> BooleanFunction;
 
-struct BooleanFunctionVisitor : boost::static_visitor<BooleanFunction> {
+class BooleanFunctionVisitor : boost::static_visitor<boost::tribool> {
+private:
 
-    BooleanFunction operator()(const Variable& v) const;
-    BooleanFunction operator()(const UnaryOperation<NotOp>& u) const;
-    BooleanFunction operator()(const BinaryOperation<OrOp >& b) const;
-    BooleanFunction operator()(const BinaryOperation<AndOp>& b) const;
-    BooleanFunction operator()(const BinaryOperation<XorOp>& b) const;
+    std::vector<std::string> cellInputs;
+    std::vector<boost::tribool> input;
 
-    static BooleanFunction getBooleanFunction(const Expression& expr, std::string func, const std::vector<std::string>& inputs);
+public:
+
+    boost::tribool operator()(const Variable& v) const;
+    boost::tribool operator()(const UnaryOperation<NotOp>& u) const;
+    boost::tribool operator()(const BinaryOperation<OrOp >& b) const;
+    boost::tribool operator()(const BinaryOperation<AndOp>& b) const;
+    boost::tribool operator()(const BinaryOperation<XorOp>& b) const;
+
+    boost::tribool evaluateExpression(const Expression& expr, const std::vector<std::string>& cellInputs, const std::vector<boost::tribool>& input);
 
 };
