@@ -1,6 +1,7 @@
 #include "BooleanParser.hpp"
 #include <iostream>
 #include <stdexcept>
+#include <unordered_map>
 
 BooleanFunction BooleanFunctionVisitor::operator()(const Variable& v) const {
     return [](const std::vector<boost::tribool>& in) {
@@ -41,4 +42,46 @@ BooleanFunction BooleanFunctionVisitor::operator()(const BinaryOperation<XorOp>&
         return (leftRes || rightRes) && !(leftRes && rightRes);
     };
     return xorFunct;
+}
+
+BooleanFunction BooleanFunctionVisitor::getBooleanFunction(const Expression& expr, std::string func, const std::vector<std::string>& inputs) {
+    std::replace(func.begin(), func.end(), '(', ' '); // forgive me Father for I have sinned...
+    std::replace(func.begin(), func.end(), ')', ' ');
+    std::replace(func.begin(), func.end(), '!', ' ');
+    std::replace(func.begin(), func.end(), '*', ' ');
+    std::replace(func.begin(), func.end(), '&', ' ');
+    std::replace(func.begin(), func.end(), '|', ' ');
+    std::replace(func.begin(), func.end(), '+', ' ');
+    std::replace(func.begin(), func.end(), '^', ' ');
+
+    int argIdx = 0;
+    std::string inputBuf;
+    std::unordered_map<std::string, std::vector<int>> inputArgumentIdxs;
+    for (const auto& c : func) {
+        if (::isspace(c)) {
+            if (!inputBuf.empty()) {
+                inputArgumentIdxs[inputBuf].push_back(argIdx++);
+                inputBuf = "";
+            }
+            continue;
+        }
+        inputBuf.push_back(c);
+    }
+    if (!inputBuf.empty()) {
+        inputArgumentIdxs[inputBuf].push_back(argIdx++);
+    }
+
+    auto f = boost::apply_visitor(BooleanFunctionVisitor(), expr);
+    auto newF = [inputs,argIdx,inputArgumentIdxs,f](const std::vector<boost::tribool>& newIn) {
+        std::vector<boost::tribool> completeIn(argIdx, boost::indeterminate);
+        int newInIdx = 0;
+        for (const auto& input : inputs) {
+            for (int i : inputArgumentIdxs.at(input)) {
+                completeIn[i] = newIn[newInIdx];
+            }
+            newInIdx++;
+        }
+        return f(completeIn);
+    };
+    return newF;
 }

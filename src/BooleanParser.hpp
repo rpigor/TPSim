@@ -75,7 +75,7 @@ struct BooleanParser : boost::spirit::qi::grammar<It, Expression(), Skipper> {
                                     );
 
         not_ =
-            ( '!' > term_ )                                     [ _val = phx::construct<UnaryOperation <NotOp>>(_1) ]
+            ( '!' > term_ )                                     [ _val = phx::construct<UnaryOperation<NotOp>>(_1) ]
             | term_                                             [ _val = _1 ];
 
         term_ =
@@ -84,7 +84,7 @@ struct BooleanParser : boost::spirit::qi::grammar<It, Expression(), Skipper> {
                 | var_
             );
 
-        var_ = lexeme[ +alpha ];
+        var_ = lexeme[ +alnum ];
 
         BOOST_SPIRIT_DEBUG_NODE(expression_);
         BOOST_SPIRIT_DEBUG_NODE(or_);
@@ -107,11 +107,11 @@ typedef std::function<boost::tribool(const std::vector<boost::tribool>&)> Boolea
 struct BooleanFunctionVisitor : boost::static_visitor<BooleanFunction> {
 
     BooleanFunction operator()(const Variable& v) const;
-
     BooleanFunction operator()(const UnaryOperation<NotOp>& u) const;
-
     BooleanFunction operator()(const BinaryOperation<OrOp >& b) const;
     BooleanFunction operator()(const BinaryOperation<AndOp>& b) const;
     BooleanFunction operator()(const BinaryOperation<XorOp>& b) const;
+
+    static BooleanFunction getBooleanFunction(const Expression& expr, std::string func, const std::vector<std::string>& inputs);
 
 };

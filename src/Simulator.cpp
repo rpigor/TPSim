@@ -24,6 +24,7 @@ Simulator::Simulator(const Module& module, const CellLibrary& lib)
         wireStates[w] = indeterminate;
     }
 
+    // parse cell output boolean expressions
     BooleanParser<std::string::iterator> boolParser;
     for (auto& t : lib.cells) {
         std::string cellName = t.first;
@@ -46,7 +47,7 @@ BooleanFunction Simulator::getCellOutputFunction(const std::string& cellName, co
     Cell cell = lib.cells.at(cellName);
     auto outIt = std::find(cell.outputs.begin(), cell.outputs.end(), output);
     unsigned int outIdx = std::distance(cell.outputs.begin(), outIt);
-    return boost::apply_visitor(BooleanFunctionVisitor(), cellOutputExpressions.at(cell.name)[outIdx]);
+    return BooleanFunctionVisitor::getBooleanFunction(cellOutputExpressions.at(cellName).at(outIdx), cell.bitFunctions.at(outIdx), cell.inputs);
 }
 
 double Simulator::computeOutputCapacitance(const std::string& outputWire, boost::tribool newState, double defaultOutputCapacitance) const {
