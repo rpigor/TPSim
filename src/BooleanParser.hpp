@@ -84,7 +84,7 @@ struct BooleanParser : boost::spirit::qi::grammar<It, Expression(), Skipper> {
                 | var_
             );
 
-        var_ = lexeme[ +alnum ];
+        var_ = lexeme[ +(alnum | '_') ];
 
         BOOST_SPIRIT_DEBUG_NODE(expression_);
         BOOST_SPIRIT_DEBUG_NODE(or_);
