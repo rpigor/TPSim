@@ -33,7 +33,14 @@ void VerilogParser::add_instance(verilog::Instance&& inst) {
     auto &g = module.gates.emplace_back();
     g.cell = inst.module_name;
     g.name = inst.inst_name;
-    const Cell& cell = lib.at(g.cell);
+
+    Cell cell;
+    try {
+        cell = lib.at(g.cell);
+    }
+    catch (const std::out_of_range& e) {
+        throw std::runtime_error("could not find \'" + g.cell + "\' cell in the provided library.");
+    }
 
     std::string pin;
     std::string net;
