@@ -54,6 +54,7 @@ add_executable(TPSimTest
                 ${PROJECT_SOURCE_DIR}/src/Estimator.cpp
                 ${PROJECT_SOURCE_DIR}/src/Units.cpp
                 ${PROJECT_SOURCE_DIR}/src/EventQueue.cpp
+                ${PROJECT_SOURCE_DIR}/src/BooleanParser.cpp
                 ${PROJECT_SOURCE_DIR}/src/liberty/LibertyLibrary.cpp)
 set_target_properties(TPSimTest PROPERTIES OUTPUT_NAME "test")
 target_compile_definitions(TPSimTest PUBLIC LIBERTY_TEST_RESOURCE_PATH="${PROJECT_SOURCE_DIR}/test")
