@@ -93,7 +93,7 @@ namespace liberty {
     const auto complexAttribute_def     = name >> '(' >> (value % ',')  >> ')' >> lit(";");
     const auto defineStatement_def      = lit("define") >> '(' >> name >> ',' >> name >> ',' >> attribute >> ')' >> lit(";");
     const auto attributeList_def        = ('{' >> *attributeStatement >> '}');
-    const auto groupStatement_def       = (name >> ('('>> -stringValue >> ')') >> attributeList);
+    const auto groupStatement_def       = (name >> ('('>> -(stringValue % ',') >> ')') >> attributeList);
     const auto attributeStatement_def   = (defineStatement|simpleAttribute|complexAttribute|groupStatement);
     const auto spaceComment             = x3::rule<class spaceComment>{} = ascii::space | lexeme[lit("/*") >> *(char_ - x3::string("*/")) >> lit("*/")];
 
@@ -102,8 +102,7 @@ namespace liberty {
     template <class Iterator>
     bool liberty_parse(Iterator& first, Iterator const& last, Library& library) {
         bool result = x3::phrase_parse(first, last, groupStatement, spaceComment, library.get());
-        if(result && first == last)
-        {
+        if (result && first == last) {
             return true;
         }
         return result;

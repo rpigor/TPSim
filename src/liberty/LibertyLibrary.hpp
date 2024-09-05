@@ -75,9 +75,11 @@ namespace liberty {
         std::string currentCell;
         std::string currentPin;
         bool isInput;
+        bool isSequentialCell;
 
         std::string findRelatedPin(const GroupStatementAst& group) const;
         bool isInputPin(const GroupStatementAst& group) const;
+        bool isClockPin(const GroupStatementAst& group) const;
         LUT findLUT(const GroupStatementAst& group, const std::string& riseMatrixName, const std::string& fallMatrixName) const;
         LUT findInternalPower(const GroupStatementAst& group) const;
         LUT findDelay(const GroupStatementAst& group) const;

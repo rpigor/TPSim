@@ -20,6 +20,7 @@ namespace liberty {
 
     CellLibraryBuilder::result_type CellLibraryBuilder::operator()(const GroupStatementAst& group) {
         if (group.get().group_name == "library") {
+            isSequentialCell = false;
             library.name = group.get().name;
             library.timeUnit = findTimeUnit(group);
             library.voltageUnit = findVoltageUnit(group);
@@ -30,6 +31,10 @@ namespace liberty {
             library.voltage = findVoltage(group);
         }
         else if (group.get().group_name == "cell") {
+            if (isSequentialCell) { // drop the previous cell -- a sequential cell
+                library.cells.erase(currentCell);
+                isSequentialCell = false;
+            }
             currentCell = group.get().name;
 
             Cell libCell;
@@ -49,6 +54,10 @@ namespace liberty {
             library.cells[currentCell].leakage[findLeakageState(group)] = findLeakage(group);
         }
         else if (group.get().group_name == "pin") {
+            if (isClockPin(group)) {
+                isSequentialCell = true;
+            }
+
             currentPin = group.get().name;
             if (isInputPin(group)) {
                 isInput = true;
@@ -155,6 +164,20 @@ namespace liberty {
         }
         return false;
     }
+
+    bool CellLibraryBuilder::isClockPin(const GroupStatementAst& group) const {
+        for (const auto& c : group.get().children) {
+            if (c.get().type() != typeid(SimpleAttribute)) {
+                continue;
+            }
+            SimpleAttribute tmp = boost::get<SimpleAttribute>(c.get());
+            if (tmp.name == "clock") {
+                return (boost::get<std::string>(tmp.value) == "true");
+            }
+        }
+        return false;
+    }
+
 
     LUT CellLibraryBuilder::findLUT(const GroupStatementAst& group, const std::string& riseMatrixName, const std::string& fallMatrixName) const {
         LUT lut;
