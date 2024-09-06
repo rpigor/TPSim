@@ -32,7 +32,7 @@ sudo apt install libboost-all-dev flex bison
 Usage:
 
 ```sh
-./tpsim <verilog file> -s <stimuli file> [options]
+./tpsim <verilog file> -s <stimuli file> -l <library file> [options]
 ```
 
 Use the flag `--help` or `-h` to display all the options.
