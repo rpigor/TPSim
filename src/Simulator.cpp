@@ -94,8 +94,9 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     std::vector<Energy> energyVec;
 
     // simulation loop
+    std::unordered_map<std::string, Event> prevGateEvents;
     unsigned long prevTime = events.top().tick;
-    double prevSlope = events.top().inputSlope;
+    // double prevSlope = events.top().inputSlope;
     VCDBuffer sameTickEvs;
     while (!events.empty()) {
         Event ev = events.top();
@@ -128,6 +129,16 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
                 inputStates.push_back(wireStates.at(inWire));
             }
 
+            Event prevEvent;
+            try {
+                prevEvent = prevGateEvents.at(g.name);
+                prevGateEvents[g.name] = ev;
+            }
+            catch (const std::out_of_range& e) {
+                prevEvent = Event{"", 0.0, boost::indeterminate, 0};
+                prevGateEvents[g.name] = ev;
+            }
+
             // compute new event
             std::string outputPin = cell.outputs[0]; // only a single output is supported!
             std::string outputWire = g.output2net.at(outputPin);
@@ -154,10 +165,10 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             // estimate leakage energy
             if (ev.tick != 0) { // ignore first event
                 double leakagePower = getInputStateLeakagePower(cell.name, inputStates);
-                unsigned long startLeakTick = Estimator::estimateEndTime(prevTime, prevSlope, lib.timeUnit, cfg.timescale);
-                double leakageInterval = Units::tickToTime(ev.tick - startLeakTick, lib.timeUnit, cfg.timescale); // from the end of the previous event to the start of the current event
+                // unsigned long startLeakTick = Estimator::estimateEndTime(prevEvent.tick, prevEvent.inputSlope, lib.timeUnit, cfg.timescale);
+                double leakageInterval = Units::tickToTime(ev.tick - prevEvent.tick, lib.timeUnit, cfg.timescale); // from the end of the previous event to the start of the current event
                 double leakageEnergy = leakagePower*leakageInterval / (Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));
-                energyVec.push_back({startLeakTick, ev.tick, leakageEnergy, g.name, false});
+                energyVec.push_back({prevEvent.tick, ev.tick, leakageEnergy, g.name, false});
             }
 
             if (wireStates.at(outputWire) == result) {
