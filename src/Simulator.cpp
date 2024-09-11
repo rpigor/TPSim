@@ -152,7 +152,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             unsigned long resultingTick = ev.tick + Units::timeToTick(delay, lib.timeUnit, cfg.timescale);
 
             // estimate dynamic energy
-            double internalEnergy = indeterminate(result) ? 0.0 : std::fabs(Estimator::estimate(lib.cells.at(cell.name).internalPower, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation));
+            double internalEnergy = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).internalPower, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             double internalEnergyScaled = internalEnergy / Units::unitScale("pJ"); // TODO: remove hard coded value!!
             double switchingEnergy = outputCap*lib.voltage*lib.voltage / 2;
             double switchingEnergyScaled = switchingEnergy / Units::unitScale(lib.capacitanceUnit);
