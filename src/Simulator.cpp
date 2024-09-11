@@ -141,8 +141,24 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
             // compute new event
             std::string outputPin = cell.outputs[0]; // only a single output is supported!
-            std::string outputWire = g.output2net.at(outputPin);
+            std::string outputWire;
+            try {
+                outputWire = g.output2net.at(outputPin);
+            }
+            catch (const std::out_of_range& e) {
+                throw std::runtime_error("could not find output pin \'" + outputPin + "\' in instance \'" + g.name + "\' of type \'" + g.cell + "\'.");
+            }
             tribool result = evaluateCellOutput(cell.name, outputPin, inputStates);
+            tribool outputState;
+            try {
+                outputState = wireStates.at(outputWire);
+            }
+            catch (const std::out_of_range& e) {
+                throw std::runtime_error("could not find wire \'" + outputWire + "\' (used in instance \'" + g.name + "\' of type \'" + g.cell + "\').");
+            }
+            if (outputState == result) {
+                continue;
+            }
 
             // estimate Event parameters
             double outputCap = computeOutputCapacitance(outputWire, result, cfg.outputCapacitance);
@@ -150,15 +166,13 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             double delay = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).delay, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             double inputSlope = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).outputSlope, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             unsigned long resultingTick = ev.tick + Units::timeToTick(delay, lib.timeUnit, cfg.timescale);
+            events.push(Event{outputWire, inputSlope, result, resultingTick});
 
             // estimate dynamic energy
             double internalEnergy = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).internalPower, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             double internalEnergyScaled = internalEnergy / Units::unitScale("pJ"); // TODO: remove hard coded value!!
             double switchingEnergy = outputCap*lib.voltage*lib.voltage / 2;
             double switchingEnergyScaled = switchingEnergy / Units::unitScale(lib.capacitanceUnit);
-            if (wireStates.at(outputWire) == result) { // if output doesn't change, switching energy is not consumed
-                switchingEnergy = 0.0;
-            }
             unsigned long eventEndTick = Estimator::estimateEndTime(ev.tick, ev.inputSlope, lib.timeUnit, cfg.timescale);
             energyVec.push_back({ev.tick, eventEndTick, internalEnergyScaled + switchingEnergyScaled, g.name, true});
 
@@ -177,11 +191,6 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
                 }
                 energyVec.push_back({startLeakTick, ev.tick, leakageEnergy, g.name, false});
             }
-
-            if (wireStates.at(outputWire) == result) {
-                continue;
-            }
-            events.push(Event{outputWire, inputSlope, result, resultingTick});
         }
 
         if (ev.tick != prevTime) {
