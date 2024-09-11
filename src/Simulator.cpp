@@ -170,9 +170,9 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
             // estimate dynamic energy
             double internalEnergy = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).internalPower, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
-            double internalEnergyScaled = internalEnergy / Units::unitScale("pJ"); // TODO: remove hard coded value!!
+            double internalEnergyScaled = internalEnergy*Units::unitScale("pJ"); // TODO: remove hard coded value!!
             double switchingEnergy = outputCap*lib.voltage*lib.voltage / 2;
-            double switchingEnergyScaled = switchingEnergy / Units::unitScale(lib.capacitanceUnit);
+            double switchingEnergyScaled = switchingEnergy*Units::unitScale(lib.capacitanceUnit);
             unsigned long eventEndTick = Estimator::estimateEndTime(ev.tick, ev.inputSlope, lib.timeUnit, cfg.timescale);
             energyVec.push_back({ev.tick, eventEndTick, internalEnergyScaled + switchingEnergyScaled, g.name, true});
 
@@ -184,10 +184,10 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
                 long leakageInterval = ev.tick - startLeakTick; // from the end of the previous event to the start of the current event
                 if (leakageInterval < 0) {
                     startLeakTick = prevEvent.tick;
-                    leakageEnergy = leakagePower*Units::tickToTime(ev.tick - prevEvent.tick, lib.timeUnit, cfg.timescale) / (Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));
+                    leakageEnergy = leakagePower*Units::tickToTime(ev.tick - prevEvent.tick, lib.timeUnit, cfg.timescale)*(Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));
                 }
                 else {
-                    leakageEnergy = leakagePower*Units::tickToTime(leakageInterval, lib.timeUnit, cfg.timescale) / (Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));
+                    leakageEnergy = leakagePower*Units::tickToTime(leakageInterval, lib.timeUnit, cfg.timescale)*(Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));
                 }
                 energyVec.push_back({startLeakTick, ev.tick, leakageEnergy, g.name, false});
             }
