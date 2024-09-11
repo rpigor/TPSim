@@ -159,16 +159,23 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             if (wireStates.at(outputWire) == result) { // if output doesn't change, switching energy is not consumed
                 switchingEnergy = 0.0;
             }
-            unsigned long eventEndTick = Estimator::estimateEndTime(resultingTick, inputSlope, lib.timeUnit, cfg.timescale);
-            energyVec.push_back({resultingTick, eventEndTick, internalEnergyScaled + switchingEnergyScaled, g.name, true});
+            unsigned long eventEndTick = Estimator::estimateEndTime(ev.tick, ev.inputSlope, lib.timeUnit, cfg.timescale);
+            energyVec.push_back({ev.tick, eventEndTick, internalEnergyScaled + switchingEnergyScaled, g.name, true});
 
             // estimate leakage energy
             if (ev.tick != 0) { // ignore first event
+                double leakageEnergy;
                 double leakagePower = getInputStateLeakagePower(cell.name, inputStates);
-                // unsigned long startLeakTick = Estimator::estimateEndTime(prevEvent.tick, prevEvent.inputSlope, lib.timeUnit, cfg.timescale);
-                double leakageInterval = Units::tickToTime(ev.tick - prevEvent.tick, lib.timeUnit, cfg.timescale); // from the end of the previous event to the start of the current event
-                double leakageEnergy = leakagePower*leakageInterval / (Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));
-                energyVec.push_back({prevEvent.tick, ev.tick, leakageEnergy, g.name, false});
+                unsigned long startLeakTick = Estimator::estimateEndTime(prevEvent.tick, prevEvent.inputSlope, lib.timeUnit, cfg.timescale);
+                long leakageInterval = ev.tick - startLeakTick; // from the end of the previous event to the start of the current event
+                if (leakageInterval < 0) {
+                    startLeakTick = prevEvent.tick;
+                    leakageEnergy = leakagePower*Units::tickToTime(ev.tick - prevEvent.tick, lib.timeUnit, cfg.timescale) / (Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));
+                }
+                else {
+                    leakageEnergy = leakagePower*Units::tickToTime(leakageInterval, lib.timeUnit, cfg.timescale) / (Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));
+                }
+                energyVec.push_back({startLeakTick, ev.tick, leakageEnergy, g.name, false});
             }
 
             if (wireStates.at(outputWire) == result) {
