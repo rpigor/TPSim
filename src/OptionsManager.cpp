@@ -74,7 +74,7 @@ void OptionsManager::parseCLI(int argc, const char* argv[]) {
 void OptionsManager::printUsage(std::ostream& os) const {
     os  << "Usage: ./" << programName << " <netlist file> -s <stimuli file> -l <library file> [options...]\n"
         << desc << "\n"
-        << "Example: ./" << programName << " module.v -s inputs.stim -l sky130.lib -o module.vcd --timescale fs --period 100000\n";
+        << "Example: ./" << programName << " module.v -s inputs.stim -l sky130.lib --vcd-output module.vcd --timescale fs --period 100000\n";
 }
 
 bool OptionsManager::isHelp() const {
