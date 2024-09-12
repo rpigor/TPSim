@@ -12,6 +12,9 @@ unsigned long Units::timeToTick(double time, const std::string& timeUnit, const 
 }
 
 double Units::unitScale(const std::string& unit) {
+    if (unit.size() == 1) {
+        return 1;
+    }
     if (unitScales.count(unit.at(0)) != 0) {
         return unitScales.at(unit.at(0));
     }

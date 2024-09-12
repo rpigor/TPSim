@@ -168,11 +168,16 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             unsigned long resultingTick = ev.tick + Units::timeToTick(delay, lib.timeUnit, cfg.timescale);
             events.push(Event{outputWire, inputSlope, result, resultingTick});
 
+            if (ev.tick < cfg.clockPeriod) { // ignore first transitions, when the circuit is in an indeterminate state
+                continue;
+            }
+
             // estimate dynamic energy
+            double energyScale = Units::unitScale(lib.capacitanceUnit)*Units::unitScale(lib.voltageUnit)*Units::unitScale(lib.voltageUnit);
             double internalEnergy = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).internalPower, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
-            double internalEnergyScaled = internalEnergy*Units::unitScale("pJ"); // TODO: remove hard coded value!!
+            double internalEnergyScaled = internalEnergy*energyScale;
             double switchingEnergy = outputCap*lib.voltage*lib.voltage / 2;
-            double switchingEnergyScaled = switchingEnergy*Units::unitScale(lib.capacitanceUnit);
+            double switchingEnergyScaled = switchingEnergy*energyScale;
             unsigned long eventEndTick = Estimator::estimateEndTime(ev.tick, ev.inputSlope, lib.timeUnit, cfg.timescale);
             energyVec.push_back({ev.tick, eventEndTick, internalEnergyScaled + switchingEnergyScaled, g.name, true});
 
