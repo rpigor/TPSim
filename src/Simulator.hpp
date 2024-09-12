@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <chrono>
 
 struct SimulationConfig {
     const std::string& timescale;
@@ -35,6 +36,9 @@ public:
 
 private:
 
+    void printSimulationHeader(std::ostream& os, const std::string& moduleName, const std::string& libName) const;
+    void printSimulationProgress(std::ostream& os, unsigned long tick, const std::string& tickUnit) const;
+    void printSimulationFooter(std::ostream& os, const std::chrono::steady_clock::time_point& startTime) const;
     boost::tribool evaluateCellOutput(const std::string& cellName, const std::string& output, const std::vector<boost::tribool>& input) const;
     double getInputStateLeakagePower(const std::string& cellName, const std::vector<boost::tribool>& inputState) const;
     double computeOutputCapacitance(const std::string& outputWire, boost::tribool newState, double defaultOutputCapacitance) const;

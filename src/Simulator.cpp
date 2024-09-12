@@ -6,7 +6,7 @@
 #include "Units.hpp"
 #include <iostream>
 #include <algorithm>
-#include <ctime>
+#include <chrono>
 
 using namespace boost;
 
@@ -35,6 +35,21 @@ Simulator::Simulator(const Module& module, const CellLibrary& lib)
             cellOutputExpressions[cellName].push_back(expr);
         }
     }
+}
+
+void Simulator::printSimulationHeader(std::ostream& os, const std::string& moduleName, const std::string& libName) const {
+    os << "[ INFO ] Initializing simulation of module \'" << moduleName << "\' using library \'" << libName << "\'." << std::endl;
+}
+
+void Simulator::printSimulationProgress(std::ostream& os, unsigned long tick, const std::string& tickUnit) const {
+    os << "\t\t\t\t\r[ INFO ] Simulation time: " << tick << " " << tickUnit << std::flush;
+}
+
+void Simulator::printSimulationFooter(std::ostream& os, const std::chrono::steady_clock::time_point& startTime) const {
+    os  << "[ INFO ] Finished simulating the module." << std::endl;
+    os  << "[ INFO ] It took "
+        << std::fixed << std::setprecision(3) << std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime).count()
+        << " seconds." << std::endl;
 }
 
 boost::tribool Simulator::evaluateCellOutput(const std::string& cellName, const std::string& output, const std::vector<boost::tribool>& input) const {
@@ -84,6 +99,9 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     }
     VCDFormatter vcd(os, wires);
 
+    printSimulationHeader(std::cout, module.name, lib.name);
+    printSimulationProgress(std::cout, 0, cfg.timescale);
+
     vcd.printHeader(cfg.timescale);
     vcd.printDefinitions(module.name);
     vcd.printVarDumpInit();
@@ -94,6 +112,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     std::vector<Energy> energyVec;
 
     // simulation loop
+    std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
     std::unordered_map<std::string, Event> prevGateEvents;
     unsigned long prevTime = events.top().tick;
     // double prevSlope = events.top().inputSlope;
@@ -200,6 +219,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
         if (ev.tick != prevTime) {
             vcd.printVarDumpBuffer(sameTickEvs);
+            printSimulationProgress(std::cout, ev.tick, cfg.timescale);
         }
 
         sameTickEvs.insert(ev);
@@ -207,6 +227,9 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     }
 
     vcd.printVarDumpBuffer(sameTickEvs);
+
+    std::cout << std::endl;
+    printSimulationFooter(std::cout, startTime);
 
     /*
     for (auto& e : energyVec) {
