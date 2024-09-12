@@ -32,8 +32,8 @@ private:
     std::filesystem::path cellLibraryPath;
     std::filesystem::path netlistPath;
     std::filesystem::path stimuliPath;
-    std::filesystem::path outputPath;
-    bool outputFileSet;
+    std::filesystem::path VCDOutputPath;
+    bool VCDOutputFileSet;
     std::string timescale;
     unsigned long period;
     double stimuliSlope;
@@ -54,8 +54,8 @@ public:
     const std::filesystem::path& getCellLibraryPath() const;
     const std::filesystem::path& getNetlistPath() const;
     const std::filesystem::path& getStimuliPath() const;
-    const std::filesystem::path& getOutputPath() const;
-    bool isOutputFileSet() const;
+    const std::filesystem::path& getVCDOutputPath() const;
+    bool isVCDOutputFileSet() const;
     const std::string& getTimescale() const;
     unsigned long getPeriod() const;
     double getStimuliSlope() const;

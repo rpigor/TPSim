@@ -3,6 +3,7 @@
 #include "LibertyParser.hpp"
 #include "VerilogParser.hpp"
 #include "StimuliParser.hpp"
+#include <boost/iostreams/stream.hpp>
 #include <iostream>
 #include <string>
 
@@ -23,11 +24,12 @@ int main(const int argc, const char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    // set output stream
-    std::ostream* os = &std::cout;
+    // set VCD output stream
+    boost::iostreams::stream <boost::iostreams::null_sink> nullOs((boost::iostreams::null_sink()));
+    std::ostream* os = &nullOs;
     std::ofstream fileOut;
-    if (opt.isOutputFileSet()) {
-        fileOut.open(opt.getOutputPath());
+    if (opt.isVCDOutputFileSet()) {
+        fileOut.open(opt.getVCDOutputPath());
         os = &fileOut;
     }
 
@@ -86,7 +88,7 @@ int main(const int argc, const char* argv[]) {
     }
 
     // close output file
-    if (opt.isOutputFileSet()) {
+    if (opt.isVCDOutputFileSet()) {
         fileOut.close();
     }
 
