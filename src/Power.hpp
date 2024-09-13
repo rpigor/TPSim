@@ -3,21 +3,23 @@
 #include <ostream>
 #include <vector>
 #include <string>
+#include <unordered_map>
+#include <filesystem>
 
-struct Energy {
-    unsigned long startTick;
-    unsigned long endTick;
-    double energy;
-    std::string instance;
-    bool dynamic;
+class PowerReport {
+private:
 
-    friend std::ostream& operator<< (std::ostream& os, const Energy& e);
+    std::filesystem::path reportPath;
+    std::unordered_map<std::string, double> cellSwitchingEnergy;
+    std::unordered_map<std::string, double> cellInternalEnergy;
+    std::unordered_map<std::string, double> cellLeakageEnergy;
+
+public:
+
+    PowerReport(const std::filesystem::path& reportPath);
+    void addSwitchingEnergy(const std::string& cellName, double e);
+    void addInternalEnergy(const std::string& cellName, double e);
+    void addLeakageEnergy(const std::string& cellName, double e);
+    void saveReport(const std::string& moduleName) const;
+
 };
-
-namespace Power {
-
-    double accumulateEnergy(const std::vector<Energy>& energies);
-    double accumulateDynamicEnergy(const std::vector<Energy>& energies);
-    double accumulateStaticEnergy(const std::vector<Energy>& energies);
-
-}

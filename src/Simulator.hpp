@@ -17,6 +17,7 @@ struct SimulationConfig {
     double outputCapacitance;
     unsigned long timeLimit;
     bool allowExtrapolation;
+    std::filesystem::path powerReportFile;
 };
 
 class Simulator {

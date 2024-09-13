@@ -16,6 +16,7 @@ void OptionsManager::parseCLI(int argc, const char* argv[]) {
         ("stimuli,s",               po::value<std::string>()->required(),                           "Input vector file")
         ("library,l",               po::value<std::string>()->required(),                           "Liberty standard cell library")
         ("vcd-output",              po::value<std::string>(),                                       "VCD output file")
+        ("power-report",            po::value<std::string>(),                                       "Power report file")
         ("timescale",               po::value<std::string>(&timescale)->default_value("ps"),        "Simulation timescale")
         ("period",                  po::value<unsigned long>(&period)->default_value(10000),        "Input stimuli clock period")
         ("input-slope",             po::value<double>(&stimuliSlope)->default_value(0.0),           "Input stimuli slope")
@@ -56,6 +57,17 @@ void OptionsManager::parseCLI(int argc, const char* argv[]) {
     VCDOutputFileSet = vm.count("vcd-output") != 0;
     if (VCDOutputFileSet) {
         VCDOutputPath = std::filesystem::path(vm["vcd-output"].as<std::string>());
+    }
+
+    if (vm.count("power-report") != 0) {
+        powerReportFilePath = std::filesystem::path(vm["power-report"].as<std::string>());
+    }
+    else {
+        std::time_t t = std::time(nullptr);
+        std::tm tm = *std::localtime(&t);
+        std::stringstream ss;
+        ss << std::put_time(&tm, "power-%d%m%Y-%H%M%S.rpt");
+        powerReportFilePath = ss.str();
     }
 
     if (stimuliSlope < 0.0) {
@@ -99,6 +111,10 @@ const std::filesystem::path& OptionsManager::getVCDOutputPath() const {
 
 bool OptionsManager::isVCDOutputFileSet() const {
     return VCDOutputFileSet;
+}
+
+const std::filesystem::path& OptionsManager::getPowerReportFilePath() const {
+    return powerReportFilePath;
 }
 
 const std::string& OptionsManager::getTimescale() const {

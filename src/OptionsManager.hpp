@@ -34,6 +34,7 @@ private:
     std::filesystem::path stimuliPath;
     std::filesystem::path VCDOutputPath;
     bool VCDOutputFileSet;
+    std::filesystem::path powerReportFilePath;
     std::string timescale;
     unsigned long period;
     double stimuliSlope;
@@ -56,6 +57,7 @@ public:
     const std::filesystem::path& getStimuliPath() const;
     const std::filesystem::path& getVCDOutputPath() const;
     bool isVCDOutputFileSet() const;
+    const std::filesystem::path& getPowerReportFilePath() const;
     const std::string& getTimescale() const;
     unsigned long getPeriod() const;
     double getStimuliSlope() const;

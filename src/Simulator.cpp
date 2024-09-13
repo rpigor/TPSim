@@ -93,6 +93,8 @@ double Simulator::computeOutputCapacitance(const std::string& outputWire, boost:
 }
 
 void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, const SimulationConfig& cfg, std::ostream& os) {
+    PowerReport pwrReport(cfg.powerReportFile);
+
     std::vector<std::string> wires;
     for (auto& t : wireStates) {
         wires.push_back(t.first);
@@ -108,8 +110,6 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
     // initiailize event queue with external stimuli
     EventQueue events(stimuli, module.inputs, cfg.clockPeriod, cfg.stimuliSlope);
-
-    std::vector<Energy> energyVec;
 
     // simulation loop
     std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
@@ -197,8 +197,9 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             double internalEnergyScaled = internalEnergy*energyScale;
             double switchingEnergy = outputCap*lib.voltage*lib.voltage / 2;
             double switchingEnergyScaled = switchingEnergy*energyScale;
-            unsigned long eventEndTick = Estimator::estimateEndTime(ev.tick, ev.inputSlope, lib.timeUnit, cfg.timescale);
-            energyVec.push_back({ev.tick, eventEndTick, internalEnergyScaled + switchingEnergyScaled, g.name, true});
+            // unsigned long eventEndTick = Estimator::estimateEndTime(ev.tick, ev.inputSlope, lib.timeUnit, cfg.timescale);
+            pwrReport.addSwitchingEnergy(g.cell, switchingEnergyScaled);
+            pwrReport.addInternalEnergy(g.cell, internalEnergyScaled);
 
             // estimate leakage energy
             if (ev.tick != 0) { // ignore first event
@@ -213,7 +214,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
                 else {
                     leakageEnergy = leakagePower*Units::tickToTime(leakageInterval, lib.timeUnit, cfg.timescale)*(Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));
                 }
-                energyVec.push_back({startLeakTick, ev.tick, leakageEnergy, g.name, false});
+                pwrReport.addLeakageEnergy(g.cell, leakageEnergy);
             }
         }
 
@@ -231,18 +232,6 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     std::cout << std::endl;
     printSimulationFooter(std::cout, startTime);
 
-    /*
-    for (auto& e : energyVec) {
-        std::cout << e << std::endl;
-    }
-
-    double totalEnergy = Power::accumulateEnergy(energyVec);
-    double dynEnergy = Power::accumulateDynamicEnergy(energyVec);
-    double staticEnergy = Power::accumulateStaticEnergy(energyVec);
-    double dynPct = 100 * (dynEnergy / totalEnergy);
-    double staticPct = 100 - dynPct;
-    std::cout << "Total energy:\t" << totalEnergy << std::endl;
-    std::cout << "Dynamic energy:\t" << dynEnergy  << " (" << dynPct << "%)" << std::endl;
-    std::cout << "Static energy:\t" << staticEnergy << " (" << staticPct << "%)" << std::endl;
-    */
+    pwrReport.saveReport(module.name);
+    std::cout << "[ INFO ] Saved power report to " << std::filesystem::canonical(cfg.powerReportFile) << "." << std::endl;
 }

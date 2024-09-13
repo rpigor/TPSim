@@ -74,7 +74,8 @@ int main(const int argc, const char* argv[]) {
         opt.getStimuliSlope(),
         opt.getOutputCapacitance(),
         opt.getTimeout(),
-        opt.isExtrapolationEnabled()
+        opt.isExtrapolationEnabled(),
+        opt.getPowerReportFilePath()
     };
 
     // simulate
