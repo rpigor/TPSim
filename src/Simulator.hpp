@@ -37,8 +37,8 @@ public:
 
 private:
 
-    void printSimulationHeader(std::ostream& os, const std::string& moduleName, const std::string& libName) const;
-    void printSimulationProgress(std::ostream& os, unsigned long tick, const std::string& tickUnit) const;
+    void printSimulationHeader(std::ostream& os, const SimulationConfig& cfg) const;
+    void printSimulationProgress(std::ostream& os, unsigned long tick, const std::string& tickUnit, char animationChar) const;
     void printSimulationFooter(std::ostream& os, const std::chrono::steady_clock::time_point& startTime) const;
     boost::tribool evaluateCellOutput(const std::string& cellName, const std::string& output, const std::vector<boost::tribool>& input) const;
     double getInputStateLeakagePower(const std::string& cellName, const std::vector<boost::tribool>& inputState) const;

@@ -37,12 +37,14 @@ Simulator::Simulator(const Module& module, const CellLibrary& lib)
     }
 }
 
-void Simulator::printSimulationHeader(std::ostream& os, const std::string& moduleName, const std::string& libName) const {
-    os << "[ INFO ] Initializing simulation of module \'" << moduleName << "\' using library \'" << libName << "\'." << std::endl;
+void Simulator::printSimulationHeader(std::ostream& os, const SimulationConfig& cfg) const {
+    os << "[ INFO ] Initializing simulation of module \'" << module.name << "\' using library \'" << lib.name << "\'." << std::endl;
+    os << "[ INFO ] Input stimuli slope: " << cfg.stimuliSlope << " " << lib.timeUnit << std::endl;
+    os << "[ INFO ] Output load capacitance: " << cfg.outputCapacitance << " " << lib.capacitanceUnit << std::endl;
 }
 
-void Simulator::printSimulationProgress(std::ostream& os, unsigned long tick, const std::string& tickUnit) const {
-    os << "\t\t\t\t\r[ INFO ] Simulation time: " << tick << " " << tickUnit << std::flush;
+void Simulator::printSimulationProgress(std::ostream& os, unsigned long tick, const std::string& tickUnit, char animationChar) const {
+    os << "\t\t\t\t\r[ " << animationChar << " ] Simulation time: " << tick << " " << tickUnit << std::flush;
 }
 
 void Simulator::printSimulationFooter(std::ostream& os, const std::chrono::steady_clock::time_point& startTime) const {
@@ -101,8 +103,10 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     }
     VCDFormatter vcd(os, wires);
 
-    printSimulationHeader(std::cout, module.name, lib.name);
-    printSimulationProgress(std::cout, 0, cfg.timescale);
+    std::size_t animIdx = 0;
+    std::array<char, 4> animChars = {'|', '/', '-', '\\'};
+    printSimulationHeader(std::cout, cfg);
+    printSimulationProgress(std::cout, 0, cfg.timescale, animChars[animIdx]);
 
     vcd.printHeader(cfg.timescale);
     vcd.printDefinitions(module.name);
@@ -220,7 +224,8 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
 
         if (ev.tick != prevTime) {
             vcd.printVarDumpBuffer(sameTickEvs);
-            printSimulationProgress(std::cout, ev.tick, cfg.timescale);
+            printSimulationProgress(std::cout, ev.tick, cfg.timescale, animChars[animIdx++]);
+            animIdx = animIdx % 4;
         }
 
         sameTickEvs.insert(ev);
