@@ -1,6 +1,6 @@
 #include "Simulator.hpp"
 #include "EventQueue.hpp"
-#include "Power.hpp"
+#include "PowerReport.hpp"
 #include "Estimator.hpp"
 #include "VCD.hpp"
 #include "Units.hpp"

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Cell.hpp"
-#include "Power.hpp"
 #include <unordered_map>
 #include <string>
 
