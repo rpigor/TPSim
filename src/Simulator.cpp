@@ -175,7 +175,7 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
             catch (const std::out_of_range& e) {
                 throw std::runtime_error("could not find wire \'" + outputWire + "\' (used in instance \'" + g.name + "\' of type \'" + g.cell + "\').");
             }
-            if (outputState == result) {
+            if ((outputState == result) || (indeterminate(outputState) && indeterminate(result))) {
                 continue;
             }
 
