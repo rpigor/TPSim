@@ -34,16 +34,15 @@ public:
 class VCDFormatter {
 private:
 
-    std::ostream& os;
     std::unordered_map<std::string, std::string> wireIdMap;
 
 public:
 
     VCDFormatter() = delete;
-    VCDFormatter(std::ostream& os, const std::vector<std::string>& wires);
-    void printHeader(const std::string& timescale) const;
-    void printDefinitions(const std::string& moduleName) const;
-    void printVarDumpInit() const;
-    void printVarDumpBuffer(const VCDBuffer& buffer) const;
+    VCDFormatter(const std::vector<std::string>& wires);
+    void printHeader(std::ostream& os, const std::string& timescale) const;
+    void printDefinitions(std::ostream& os, const std::string& moduleName) const;
+    void printVarDumpInit(std::ostream& os) const;
+    void printVarDumpBuffer(std::ostream& os, const VCDBuffer& buffer) const;
 
 };

@@ -37,23 +37,6 @@ Simulation::Simulation(const Module& module, const CellLibrary& lib, const Stimu
     }
 }
 
-void Simulation::printSimulationHeader(std::ostream& os, const SimulationConfig& cfg) const {
-    os << "[ INFO ] Initializing simulation of module \'" << module.name << "\' using library \'" << lib.name << "\'." << std::endl;
-    os << "[ INFO ] Input stimuli slope: " << cfg.stimuliSlope << " " << lib.timeUnit << std::endl;
-    os << "[ INFO ] Output load capacitance: " << cfg.outputCapacitance << " " << lib.capacitanceUnit << std::endl;
-}
-
-void Simulation::printSimulationProgress(std::ostream& os, unsigned long tick, const std::string& tickUnit, char animationChar) const {
-    os << "\t\t\t\t\r[ " << animationChar << " ] Simulation time: " << tick << " " << tickUnit << std::flush;
-}
-
-void Simulation::printSimulationFooter(std::ostream& os, const std::chrono::steady_clock::time_point& startTime) const {
-    os  << "[ INFO ] Finished simulating the module." << std::endl;
-    os  << "[ INFO ] It took "
-        << std::fixed << std::setprecision(3) << std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime).count()
-        << " seconds." << std::endl;
-}
-
 boost::tribool Simulation::evaluateCellOutput(const std::string& cellName, const std::string& output, const std::vector<boost::tribool>& input) const {
     Cell cell = lib.cells.at(cellName);
     auto outIt = std::find(cell.outputs.begin(), cell.outputs.end(), output);
@@ -94,34 +77,19 @@ double Simulation::computeOutputCapacitance(const std::string& outputWire, boost
     return outputCap;
 }
 
-void Simulation::run(std::ostream& os) {
+void Simulation::run() {
     PowerReport pwrReport(cfg.powerReportFile);
 
-    std::vector<std::string> wires;
-    for (auto& t : wireStates) {
-        wires.push_back(t.first);
-    }
-    VCDFormatter vcd(os, wires);
-
-    std::size_t animIdx = 0;
-    std::array<char, 4> animChars = {'|', '/', '-', '\\'};
-    printSimulationHeader(std::cout, cfg);
-    printSimulationProgress(std::cout, 0, cfg.timescale, animChars[animIdx]);
-
-    vcd.printHeader(cfg.timescale);
-    vcd.printDefinitions(module.name);
-    vcd.printVarDumpInit();
+    notifyOnBegin();
 
     // initiailize event queue with external stimuli
     EventQueue events(stim, module.inputs, cfg.clockPeriod, cfg.stimuliSlope);
 
     // simulation loop
-    std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
     std::unordered_map<std::string, Event> prevGateEvents;
     unsigned long prevTime = events.top().tick;
     // double prevSlope = events.top().inputSlope;
 
-    VCDBuffer sameTickEvs;
     while (!events.empty()) {
         Event ev = events.top();
         events.pop();
@@ -190,7 +158,10 @@ void Simulation::run(std::ostream& os) {
             double delay = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).delay, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             double inputSlope = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).outputSlope, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
             unsigned long resultingTick = ev.tick + Units::timeToTick(delay, lib.timeUnit, cfg.timescale);
-            events.push(Event{outputWire, inputSlope, result, resultingTick});
+            Event newEv{outputWire, inputSlope, result, resultingTick};
+            events.push(newEv);
+
+            notifyOnNewEvent(newEv, ev, cell.name, outputCap);
 
             if (ev.tick < cfg.clockPeriod) { // ignore first transitions, when the circuit is in an indeterminate state
                 continue;
@@ -223,21 +194,69 @@ void Simulation::run(std::ostream& os) {
             }
         }
 
-        if (ev.tick != prevTime) {
-            vcd.printVarDumpBuffer(sameTickEvs);
-            printSimulationProgress(std::cout, ev.tick, cfg.timescale, animChars[animIdx++]);
-            animIdx = animIdx % 4;
-        }
+        notifyAfterHandlingEvent(ev, prevTime);
 
-        sameTickEvs.insert(ev);
         prevTime = ev.tick;
     }
 
-    vcd.printVarDumpBuffer(sameTickEvs);
-
-    std::cout << std::endl;
-    printSimulationFooter(std::cout, startTime);
+    notifyOnEnd();
 
     pwrReport.saveReport(module.name);
     std::cout << "[ INFO ] Saved power report to " << std::filesystem::canonical(cfg.powerReportFile) << "." << std::endl;
+}
+
+const Module& Simulation::getModule() const {
+    return module;
+}
+
+const CellLibrary& Simulation::getLibrary() const {
+    return lib;
+}
+
+Stimuli Simulation::getStimuli() const {
+    return stim;
+}
+
+SimulationConfig Simulation::getConfiguration() const {
+    return cfg;
+}
+
+void Simulation::hookOnBeginSubscriber(SimulationOnBeginSubscriber* subscriber) {
+    beginSubscribers.push_back(subscriber);
+}
+
+void Simulation::hookOnNewEventSubscriber(SimulationOnNewEventSubscriber* subscriber) {
+    newEventSubscribers.push_back(subscriber);
+}
+
+void Simulation::hookAfterHandlingEventSubscriber(SimulationAfterHandlingEventSubscriber* subscriber) {
+    afterEventSubscribers.push_back(subscriber);
+}
+
+void Simulation::hookOnEndSubscriber(SimulationOnEndSubscriber* subscriber) {
+    endSubscribers.push_back(subscriber);
+}
+
+void Simulation::notifyOnBegin() {
+    for (auto s : beginSubscribers) {
+        s->updateOnBegin(this);
+    }
+}
+
+void Simulation::notifyOnNewEvent(const Event& newEv, const Event& causeEv, const std::string& cellName, double outputCapacitance) {
+    for (auto s : newEventSubscribers) {
+        s->updateOnNewEvent(this, newEv, causeEv, cellName, outputCapacitance);
+    }
+}
+
+void Simulation::notifyAfterHandlingEvent(const Event& ev, unsigned long prevEvTime) {
+    for (auto s : afterEventSubscribers) {
+        s->updateAfterHandlingEvent(this, ev, prevEvTime);
+    }
+}
+
+void Simulation::notifyOnEnd() {
+    for (auto s : endSubscribers) {
+        s->updateOnEnd(this);
+    }
 }

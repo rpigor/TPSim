@@ -46,8 +46,7 @@ void VCDBuffer::printVCD(std::ostream& os, const std::unordered_map<std::string,
     }
 }
 
-VCDFormatter::VCDFormatter(std::ostream& os, const std::vector<std::string>& wires)
-: os(os) {
+VCDFormatter::VCDFormatter(const std::vector<std::string>& wires) {
     const char minWireChar = 33;
     const char maxWireChar = 126;
     unsigned char idx = 0;
@@ -65,7 +64,7 @@ VCDFormatter::VCDFormatter(std::ostream& os, const std::vector<std::string>& wir
     }
 }
 
-void VCDFormatter::printHeader(const std::string& timescale) const {
+void VCDFormatter::printHeader(std::ostream& os, const std::string& timescale) const {
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
     os  << "$version TPSim $end\n"
@@ -73,7 +72,7 @@ void VCDFormatter::printHeader(const std::string& timescale) const {
         << "$timescale 1" << timescale << " $end\n";
 }
 
-void VCDFormatter::printDefinitions(const std::string& moduleName) const {
+void VCDFormatter::printDefinitions(std::ostream& os, const std::string& moduleName) const {
     os << "$scope module " << moduleName << " $end\n";
 
     for (auto& t : wireIdMap) {
@@ -84,10 +83,10 @@ void VCDFormatter::printDefinitions(const std::string& moduleName) const {
         << "$enddefinitions $end\n";
 }
 
-void VCDFormatter::printVarDumpInit() const {
+void VCDFormatter::printVarDumpInit(std::ostream& os) const {
     os << "dumpvars\n";
 }
 
-void VCDFormatter::printVarDumpBuffer(const VCDBuffer& buffer) const {
+void VCDFormatter::printVarDumpBuffer(std::ostream& os, const VCDBuffer& buffer) const {
     buffer.printVCD(os, wireIdMap);
 }

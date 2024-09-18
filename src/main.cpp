@@ -1,8 +1,10 @@
-#include "Simulation.hpp"
 #include "OptionsManager.hpp"
 #include "LibertyParser.hpp"
 #include "VerilogParser.hpp"
 #include "StimuliParser.hpp"
+#include "Simulation.hpp"
+#include "SimulationOutput.hpp"
+#include "VCDOutput.hpp"
 #include <boost/iostreams/stream.hpp>
 #include <iostream>
 #include <string>
@@ -22,15 +24,6 @@ int main(const int argc, const char* argv[]) {
     if (opt.isHelp()) {
         opt.printUsage(std::cout);
         return EXIT_FAILURE;
-    }
-
-    // set VCD output stream
-    boost::iostreams::stream <boost::iostreams::null_sink> nullOs((boost::iostreams::null_sink()));
-    std::ostream* os = &nullOs;
-    std::ofstream fileOut;
-    if (opt.isVCDOutputFileSet()) {
-        fileOut.open(opt.getVCDOutputPath());
-        os = &fileOut;
     }
 
     // parse Liberty
@@ -77,20 +70,50 @@ int main(const int argc, const char* argv[]) {
         opt.isExtrapolationEnabled(),
         opt.getPowerReportFilePath()
     };
+    Simulation sim(verilogParser.module, cellLib, stimuliParser.getStimuli(), cfg);
+
+    // set simulation output
+    SimulationOutput* simOut = new SimulationOutput(std::cout);
+    sim.hookOnBeginSubscriber(simOut);
+    sim.hookAfterHandlingEventSubscriber(simOut);
+    sim.hookOnEndSubscriber(simOut);
+
+    // set VCD output
+    std::vector<std::string> wires;
+    wires.insert(wires.end(), verilogParser.module.inputs.begin(), verilogParser.module.inputs.end());
+    wires.insert(wires.end(), verilogParser.module.outputs.begin(), verilogParser.module.outputs.end());
+    wires.insert(wires.end(), verilogParser.module.wires.begin(), verilogParser.module.wires.end());
+    boost::iostreams::stream <boost::iostreams::null_sink> nullOs((boost::iostreams::null_sink()));
+    std::ostream* vcdFileStream = &nullOs;
+    std::ofstream vcdFileOut;
+    VCDOutput* vcdOut;
+    if (opt.isVCDOutputFileSet()) {
+        vcdFileOut.open(opt.getVCDOutputPath());
+        vcdFileStream = &vcdFileOut;
+        vcdOut = new VCDOutput(opt.getVCDOutputPath(), *vcdFileStream, std::cout, wires);
+    }
+    else {
+        vcdOut = new VCDOutput(*vcdFileStream, std::cout, wires);
+    }
+    sim.hookOnBeginSubscriber(vcdOut);
+    sim.hookAfterHandlingEventSubscriber(vcdOut);
+    sim.hookOnEndSubscriber(vcdOut);
 
     // simulate
-    Simulation sim(verilogParser.module, cellLib, stimuliParser.getStimuli(), cfg);
     try {
-        sim.run(*os);
+        sim.run();
     }
     catch (std::runtime_error& e) {
         std::cerr << "[ ERRROR ] While simulating: " << e.what() << "\n";
         return EXIT_FAILURE;
     }
 
+    delete simOut;
+    delete vcdOut;
+
     // close output file
     if (opt.isVCDOutputFileSet()) {
-        fileOut.close();
+        vcdFileOut.close();
     }
 
     return EXIT_SUCCESS;
