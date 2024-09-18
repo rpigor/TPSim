@@ -1,6 +1,5 @@
 #include "Simulation.hpp"
 #include "EventQueue.hpp"
-#include "PowerReport.hpp"
 #include "Estimator.hpp"
 #include "Units.hpp"
 #include <iostream>
@@ -43,17 +42,6 @@ boost::tribool Simulation::evaluateCellOutput(const std::string& cellName, const
     return BooleanFunctionVisitor().evaluateExpression(cellOutputExpressions.at(cellName).at(outIdx), cell.inputs, input);
 }
 
-double Simulation::getInputStateLeakagePower(const std::string& cellName, const std::vector<boost::tribool>& inputState) const {
-    BooleanParser<std::string::iterator> boolParser;
-    for (const auto& leakTuple : lib.cells.at(cellName).leakage) {
-        auto expr = BooleanFunctionVisitor::parseExpression(leakTuple.first, boolParser);
-        if (BooleanFunctionVisitor().evaluateExpression(expr, lib.cells.at(cellName).inputs, inputState)) {
-            return leakTuple.second;
-        }
-    }
-    return 0.0;
-}
-
 double Simulation::computeOutputCapacitance(const std::string& outputWire, boost::tribool newState, double defaultOutputCapacitance) const {
     int affectedGates = 0;
     double outputCap = 0.0;
@@ -77,8 +65,6 @@ double Simulation::computeOutputCapacitance(const std::string& outputWire, boost
 }
 
 void Simulation::run() {
-    PowerReport pwrReport(cfg.powerReportFile);
-
     notifyOnBegin();
 
     // initiailize event queue with external stimuli
@@ -87,7 +73,6 @@ void Simulation::run() {
     // simulation loop
     std::unordered_map<std::string, Event> prevGateEvents;
     unsigned long prevTime = events.top().tick;
-    // double prevSlope = events.top().inputSlope;
 
     while (!events.empty()) {
         Event ev = events.top();
@@ -160,37 +145,7 @@ void Simulation::run() {
             Event newEv{outputWire, inputSlope, result, resultingTick};
             events.push(newEv);
 
-            notifyOnNewEvent(newEv, ev, cell.name, outputCap);
-
-            if (ev.tick < cfg.clockPeriod) { // ignore first transitions, when the circuit is in an indeterminate state
-                continue;
-            }
-
-            // estimate dynamic energy
-            double energyScale = Units::unitScale(lib.capacitanceUnit)*Units::unitScale(lib.voltageUnit)*Units::unitScale(lib.voltageUnit);
-            double internalEnergy = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).internalPower, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
-            double internalEnergyScaled = internalEnergy*energyScale;
-            double switchingEnergy = outputCap*lib.voltage*lib.voltage / 2;
-            double switchingEnergyScaled = switchingEnergy*energyScale;
-            // unsigned long eventEndTick = Estimator::estimateEndTime(ev.tick, ev.inputSlope, lib.timeUnit, cfg.timescale);
-            pwrReport.addSwitchingEnergy(g.cell, switchingEnergyScaled);
-            pwrReport.addInternalEnergy(g.cell, internalEnergyScaled);
-
-            // estimate leakage energy
-            if (ev.tick != 0) { // ignore first event
-                double leakageEnergy;
-                double leakagePower = getInputStateLeakagePower(cell.name, inputStates);
-                unsigned long startLeakTick = Estimator::estimateEndTime(prevEvent.tick, prevEvent.inputSlope, lib.timeUnit, cfg.timescale);
-                long leakageInterval = ev.tick - startLeakTick; // from the end of the previous event to the start of the current event
-                if (leakageInterval < 0) {
-                    startLeakTick = prevEvent.tick;
-                    leakageEnergy = leakagePower*Units::tickToTime(ev.tick - prevEvent.tick, lib.timeUnit, cfg.timescale)*(Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));
-                }
-                else {
-                    leakageEnergy = leakagePower*Units::tickToTime(leakageInterval, lib.timeUnit, cfg.timescale)*(Units::unitScale(lib.timeUnit)*Units::unitScale(lib.leakagePowerUnit));
-                }
-                pwrReport.addLeakageEnergy(g.cell, leakageEnergy);
-            }
+            notifyOnNewEvent(prevEvent, ev, newEv, cell.name, arc, inputStates, outputCap);
         }
 
         notifyAfterHandlingEvent(ev, prevTime);
@@ -199,9 +154,6 @@ void Simulation::run() {
     }
 
     notifyOnEnd();
-
-    pwrReport.saveReport(module.name);
-    std::cout << "[ INFO ] Saved power report to " << std::filesystem::canonical(cfg.powerReportFile) << "." << std::endl;
 }
 
 const Module& Simulation::getModule() const {
@@ -242,9 +194,10 @@ void Simulation::notifyOnBegin() {
     }
 }
 
-void Simulation::notifyOnNewEvent(const Event& newEv, const Event& causeEv, const std::string& cellName, double outputCapacitance) {
+void Simulation::notifyOnNewEvent(const Event& prevInputEvent, const Event& inputEvent, const Event& outputEvent, const std::string& cellName, const Arc& arc, const std::vector<boost::tribool>& inputStates, double outputCapacitance) {
     for (auto s : newEventSubscribers) {
-        s->updateOnNewEvent(this, newEv, causeEv, cellName, outputCapacitance);
+        s->updateOnNewEvent(this, prevInputEvent, inputEvent,outputEvent, cellName, arc, inputStates, outputCapacitance);
+
     }
 }
 

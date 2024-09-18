@@ -17,7 +17,7 @@ class SimulationOnNewEventSubscriber {
 public:
 
     virtual ~SimulationOnNewEventSubscriber() = default;
-    virtual void updateOnNewEvent(Simulation* sim, const Event& newEv, const Event& causeEv, const std::string& cellName, double outputCapacitance) = 0;
+    virtual void updateOnNewEvent(Simulation* sim, const Event& prevInputEvent, const Event& inputEvent, const Event& outputEvent, const std::string& cellName, const Arc& arc, const std::vector<boost::tribool>& inputStates, double outputCapacitance) = 0;
 
 };
 

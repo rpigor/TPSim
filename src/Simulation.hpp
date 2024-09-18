@@ -19,7 +19,6 @@ struct SimulationConfig {
     double outputCapacitance;
     unsigned long timeLimit;
     bool allowExtrapolation;
-    std::filesystem::path powerReportFile;
 };
 
 class SimulationOnBeginSubscriber;
@@ -64,12 +63,11 @@ public:
 private:
 
     boost::tribool evaluateCellOutput(const std::string& cellName, const std::string& output, const std::vector<boost::tribool>& input) const;
-    double getInputStateLeakagePower(const std::string& cellName, const std::vector<boost::tribool>& inputState) const;
     double computeOutputCapacitance(const std::string& outputWire, boost::tribool newState, double defaultOutputCapacitance) const;
 
     // Observer pattern
     void notifyOnBegin();
-    void notifyOnNewEvent(const Event& newEv, const Event& causeEv, const std::string& cellName, double outputCapacitance);
+    void notifyOnNewEvent(const Event& prevInputEvent, const Event& inputEvent, const Event& outputEvent, const std::string& cellName, const Arc& arc, const std::vector<boost::tribool>& inputStates, double outputCapacitance);
     void notifyAfterHandlingEvent(const Event& ev, unsigned long prevEvTime);
     void notifyOnEnd();
 

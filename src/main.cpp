@@ -5,6 +5,7 @@
 #include "Simulation.hpp"
 #include "SimulationOutput.hpp"
 #include "VCDOutput.hpp"
+#include "PowerReportOutput.hpp"
 #include <boost/iostreams/stream.hpp>
 #include <iostream>
 #include <string>
@@ -67,8 +68,7 @@ int main(const int argc, const char* argv[]) {
         opt.getStimuliSlope(),
         opt.getOutputCapacitance(),
         opt.getTimeout(),
-        opt.isExtrapolationEnabled(),
-        opt.getPowerReportFilePath()
+        opt.isExtrapolationEnabled()
     };
     Simulation sim(verilogParser.module, cellLib, stimuliParser.getStimuli(), cfg);
 
@@ -99,6 +99,11 @@ int main(const int argc, const char* argv[]) {
     sim.hookAfterHandlingEventSubscriber(vcdOut);
     sim.hookOnEndSubscriber(vcdOut);
 
+    // set power report output
+    PowerReportOutput* pwrRptOut = new PowerReportOutput(opt.getPowerReportFilePath(), std::cout);
+    sim.hookOnNewEventSubscriber(pwrRptOut);
+    sim.hookOnEndSubscriber(pwrRptOut);
+
     // simulate
     try {
         sim.run();
@@ -110,6 +115,7 @@ int main(const int argc, const char* argv[]) {
 
     delete simOut;
     delete vcdOut;
+    delete pwrRptOut;
 
     // close output file
     if (opt.isVCDOutputFileSet()) {
