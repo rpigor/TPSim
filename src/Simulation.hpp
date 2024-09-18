@@ -2,6 +2,7 @@
 
 #include "VerilogParser.hpp"
 #include "BooleanParser.hpp"
+#include "StimuliParser.hpp"
 #include "CellLibrary.hpp"
 #include <boost/logic/tribool.hpp>
 #include <iostream>
@@ -20,20 +21,23 @@ struct SimulationConfig {
     std::filesystem::path powerReportFile;
 };
 
-class Simulator {
+class Simulation {
 private:
 
     const Module& module;
     const CellLibrary& lib;
+    Stimuli stim;
+    SimulationConfig cfg;
+
     std::unordered_map<std::string, boost::tribool> wireStates;
     std::unordered_map<std::string, std::vector<Expression>> cellOutputExpressions;
 
 public:
 
-    Simulator() = delete;
-    Simulator(const Module& module, const CellLibrary& lib);
+    Simulation() = delete;
+    Simulation(const Module& module, const CellLibrary& lib, const Stimuli& stim, const SimulationConfig& cfg);
 
-    void simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, const SimulationConfig& cfg, std::ostream& os);
+    void run(std::ostream& os);
 
 private:
 

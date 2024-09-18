@@ -1,4 +1,4 @@
-#include "Simulator.hpp"
+#include "Simulation.hpp"
 #include "OptionsManager.hpp"
 #include "LibertyParser.hpp"
 #include "VerilogParser.hpp"
@@ -79,9 +79,9 @@ int main(const int argc, const char* argv[]) {
     };
 
     // simulate
-    Simulator sim(verilogParser.module, cellLib);
+    Simulation sim(verilogParser.module, cellLib, stimuliParser.getStimuli(), cfg);
     try {
-        sim.simulate(stimuliParser.getStimuli(), cfg, *os);
+        sim.run(*os);
     }
     catch (std::runtime_error& e) {
         std::cerr << "[ ERRROR ] While simulating: " << e.what() << "\n";

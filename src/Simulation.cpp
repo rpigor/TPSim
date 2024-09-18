@@ -1,4 +1,4 @@
-#include "Simulator.hpp"
+#include "Simulation.hpp"
 #include "EventQueue.hpp"
 #include "PowerReport.hpp"
 #include "Estimator.hpp"
@@ -10,8 +10,8 @@
 
 using namespace boost;
 
-Simulator::Simulator(const Module& module, const CellLibrary& lib)
-: module(module), lib(lib) {
+Simulation::Simulation(const Module& module, const CellLibrary& lib, const Stimuli& stim, const SimulationConfig& cfg)
+: module(module), lib(lib), stim(stim), cfg(cfg) {
     for (auto& w : module.wires) {
         wireStates[w] = indeterminate;
     }
@@ -37,31 +37,31 @@ Simulator::Simulator(const Module& module, const CellLibrary& lib)
     }
 }
 
-void Simulator::printSimulationHeader(std::ostream& os, const SimulationConfig& cfg) const {
+void Simulation::printSimulationHeader(std::ostream& os, const SimulationConfig& cfg) const {
     os << "[ INFO ] Initializing simulation of module \'" << module.name << "\' using library \'" << lib.name << "\'." << std::endl;
     os << "[ INFO ] Input stimuli slope: " << cfg.stimuliSlope << " " << lib.timeUnit << std::endl;
     os << "[ INFO ] Output load capacitance: " << cfg.outputCapacitance << " " << lib.capacitanceUnit << std::endl;
 }
 
-void Simulator::printSimulationProgress(std::ostream& os, unsigned long tick, const std::string& tickUnit, char animationChar) const {
+void Simulation::printSimulationProgress(std::ostream& os, unsigned long tick, const std::string& tickUnit, char animationChar) const {
     os << "\t\t\t\t\r[ " << animationChar << " ] Simulation time: " << tick << " " << tickUnit << std::flush;
 }
 
-void Simulator::printSimulationFooter(std::ostream& os, const std::chrono::steady_clock::time_point& startTime) const {
+void Simulation::printSimulationFooter(std::ostream& os, const std::chrono::steady_clock::time_point& startTime) const {
     os  << "[ INFO ] Finished simulating the module." << std::endl;
     os  << "[ INFO ] It took "
         << std::fixed << std::setprecision(3) << std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime).count()
         << " seconds." << std::endl;
 }
 
-boost::tribool Simulator::evaluateCellOutput(const std::string& cellName, const std::string& output, const std::vector<boost::tribool>& input) const {
+boost::tribool Simulation::evaluateCellOutput(const std::string& cellName, const std::string& output, const std::vector<boost::tribool>& input) const {
     Cell cell = lib.cells.at(cellName);
     auto outIt = std::find(cell.outputs.begin(), cell.outputs.end(), output);
     unsigned int outIdx = std::distance(cell.outputs.begin(), outIt);
     return BooleanFunctionVisitor().evaluateExpression(cellOutputExpressions.at(cellName).at(outIdx), cell.inputs, input);
 }
 
-double Simulator::getInputStateLeakagePower(const std::string& cellName, const std::vector<boost::tribool>& inputState) const {
+double Simulation::getInputStateLeakagePower(const std::string& cellName, const std::vector<boost::tribool>& inputState) const {
     BooleanParser<std::string::iterator> boolParser;
     for (const auto& leakTuple : lib.cells.at(cellName).leakage) {
         auto expr = BooleanFunctionVisitor::parseExpression(leakTuple.first, boolParser);
@@ -72,7 +72,7 @@ double Simulator::getInputStateLeakagePower(const std::string& cellName, const s
     return 0.0;
 }
 
-double Simulator::computeOutputCapacitance(const std::string& outputWire, boost::tribool newState, double defaultOutputCapacitance) const {
+double Simulation::computeOutputCapacitance(const std::string& outputWire, boost::tribool newState, double defaultOutputCapacitance) const {
     int affectedGates = 0;
     double outputCap = 0.0;
     for (auto& g : module.gates) {
@@ -94,7 +94,7 @@ double Simulator::computeOutputCapacitance(const std::string& outputWire, boost:
     return outputCap;
 }
 
-void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost::tribool>>& stimuli, const SimulationConfig& cfg, std::ostream& os) {
+void Simulation::run(std::ostream& os) {
     PowerReport pwrReport(cfg.powerReportFile);
 
     std::vector<std::string> wires;
@@ -113,13 +113,14 @@ void Simulator::simulate(const std::unordered_map<std::string, std::vector<boost
     vcd.printVarDumpInit();
 
     // initiailize event queue with external stimuli
-    EventQueue events(stimuli, module.inputs, cfg.clockPeriod, cfg.stimuliSlope);
+    EventQueue events(stim, module.inputs, cfg.clockPeriod, cfg.stimuliSlope);
 
     // simulation loop
     std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
     std::unordered_map<std::string, Event> prevGateEvents;
     unsigned long prevTime = events.top().tick;
     // double prevSlope = events.top().inputSlope;
+
     VCDBuffer sameTickEvs;
     while (!events.empty()) {
         Event ev = events.top();
