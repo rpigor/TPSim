@@ -2,7 +2,6 @@
 #include "EventQueue.hpp"
 #include "PowerReport.hpp"
 #include "Estimator.hpp"
-#include "VCD.hpp"
 #include "Units.hpp"
 #include <iostream>
 #include <algorithm>
