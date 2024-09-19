@@ -4,6 +4,7 @@
 #include "Simulation.hpp"
 #include <boost/logic/tribool.hpp>
 #include <ostream>
+#include <fstream>
 #include <filesystem>
 #include <unordered_map>
 #include <vector>
@@ -37,10 +38,9 @@ class VCDOutput
 : public virtual SimulationOnBeginSubscriber, public virtual SimulationAfterHandlingEventSubscriber, public virtual SimulationOnEndSubscriber {
 private:
 
-    bool toFile;
     std::filesystem::path outputFileName;
-    std::ostream& outputFileStream;
-    std::ostream& os;
+    std::ofstream outputFileStream;
+    std::ostream& stdOutStream;
     std::unordered_map<std::string, std::string> wireIdMap;
     VCDBuffer sameTickEvs;
 
@@ -49,8 +49,7 @@ private:
 public:
 
     VCDOutput() = delete;
-    VCDOutput(const std::filesystem::path& outputFileName, std::ostream& outputFileStream, std::ostream& os, const std::vector<std::string>& wires);
-    VCDOutput(std::ostream& outputFileStream, std::ostream& os, const std::vector<std::string>& wires);
+    VCDOutput(const std::filesystem::path& outputFileName, std::ostream& stdOutStream, const std::vector<std::string>& wires);
     void updateOnBegin(Simulation* sim) override;
     void updateAfterHandlingEvent(Simulation* sim, const Event& ev, unsigned long prevEvTime) override;
     void updateOnEnd(Simulation* sim) override;

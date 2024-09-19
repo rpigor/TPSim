@@ -46,13 +46,9 @@ void VCDBuffer::printVCD(std::ostream& os, const std::unordered_map<std::string,
     }
 }
 
-VCDOutput::VCDOutput(const std::filesystem::path& outputFileName, std::ostream& outputFileStream, std::ostream& os, const std::vector<std::string>& wires)
-: toFile(true), outputFileName(outputFileName), outputFileStream(outputFileStream), os(os) {
-    initWireIdMap(wires);
-}
-
-VCDOutput::VCDOutput(std::ostream& outputFileStream, std::ostream& os, const std::vector<std::string>& wires)
-: toFile(false), outputFileStream(outputFileStream), os(os) {
+VCDOutput::VCDOutput(const std::filesystem::path& outputFileName, std::ostream& stdOutStream, const std::vector<std::string>& wires)
+: outputFileName(outputFileName), stdOutStream(stdOutStream) {
+    outputFileStream.open(outputFileName);
     initWireIdMap(wires);
 }
 
@@ -102,7 +98,5 @@ void VCDOutput::updateAfterHandlingEvent(Simulation* sim, const Event& ev, unsig
 
 void VCDOutput::updateOnEnd(Simulation* sim) {
     sameTickEvs.printVCD(outputFileStream, wireIdMap);
-    if (toFile) {
-        os << "[ INFO ] Saved VCD file to " << std::filesystem::canonical(outputFileName) << "." << std::endl;
-    }
+    stdOutStream << "[ INFO ] Saved VCD file to " << std::filesystem::canonical(outputFileName) << "." << std::endl;
 }

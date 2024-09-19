@@ -6,7 +6,6 @@
 #include "SimulationOutput.hpp"
 #include "VCDOutput.hpp"
 #include "PowerReportOutput.hpp"
-#include <boost/iostreams/stream.hpp>
 #include <iostream>
 #include <string>
 
@@ -72,32 +71,24 @@ int main(const int argc, const char* argv[]) {
     };
     Simulation sim(verilogParser.module, cellLib, stimuliParser.getStimuli(), cfg);
 
-    // set simulation output
+    // set simulation std output
     SimulationOutput* simOut = new SimulationOutput(std::cout);
     sim.hookOnBeginSubscriber(simOut);
     sim.hookAfterHandlingEventSubscriber(simOut);
     sim.hookOnEndSubscriber(simOut);
 
     // set VCD output
-    std::vector<std::string> wires;
-    wires.insert(wires.end(), verilogParser.module.inputs.begin(), verilogParser.module.inputs.end());
-    wires.insert(wires.end(), verilogParser.module.outputs.begin(), verilogParser.module.outputs.end());
-    wires.insert(wires.end(), verilogParser.module.wires.begin(), verilogParser.module.wires.end());
-    boost::iostreams::stream <boost::iostreams::null_sink> nullOs((boost::iostreams::null_sink()));
-    std::ostream* vcdFileStream = &nullOs;
-    std::ofstream vcdFileOut;
-    VCDOutput* vcdOut;
+    VCDOutput* vcdOut = nullptr;
     if (opt.isVCDOutputFileSet()) {
-        vcdFileOut.open(opt.getVCDOutputPath());
-        vcdFileStream = &vcdFileOut;
-        vcdOut = new VCDOutput(opt.getVCDOutputPath(), *vcdFileStream, std::cout, wires);
+        std::vector<std::string> wires;
+        wires.insert(wires.end(), verilogParser.module.inputs.begin(), verilogParser.module.inputs.end());
+        wires.insert(wires.end(), verilogParser.module.outputs.begin(), verilogParser.module.outputs.end());
+        wires.insert(wires.end(), verilogParser.module.wires.begin(), verilogParser.module.wires.end());
+        vcdOut = new VCDOutput(opt.getVCDOutputPath(), std::cout, wires);
+        sim.hookOnBeginSubscriber(vcdOut);
+        sim.hookAfterHandlingEventSubscriber(vcdOut);
+        sim.hookOnEndSubscriber(vcdOut);
     }
-    else {
-        vcdOut = new VCDOutput(*vcdFileStream, std::cout, wires);
-    }
-    sim.hookOnBeginSubscriber(vcdOut);
-    sim.hookAfterHandlingEventSubscriber(vcdOut);
-    sim.hookOnEndSubscriber(vcdOut);
 
     // set power report output
     PowerReportOutput* pwrRptOut = new PowerReportOutput(opt.getPowerReportFilePath(), std::cout);
@@ -113,14 +104,10 @@ int main(const int argc, const char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    // clean up
     delete simOut;
-    delete vcdOut;
     delete pwrRptOut;
-
-    // close output file
-    if (opt.isVCDOutputFileSet()) {
-        vcdFileOut.close();
-    }
+    delete vcdOut;
 
     return EXIT_SUCCESS;
 }
