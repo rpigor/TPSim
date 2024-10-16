@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/logic/tribool.hpp>
+#include <ostream>
 #include <string>
 
 struct Event {
@@ -23,5 +24,9 @@ struct Event {
 
     bool operator!=(const Event& ev) const {
         return std::tie(wire, inputSlope, value, tick) != std::tie(ev.wire, ev.inputSlope, ev.value, ev.tick);
+    }
+
+    friend std::ostream& operator<<(std::ostream& stream, const Event& ev) {
+        return stream << "Event{" << ev.wire << ", " << ev.inputSlope << ", " << (boost::indeterminate(ev.value) ? "indeterminate" : (ev.value == true ? "true" : "false")) << ", " << ev.tick << "}";
     }
 };

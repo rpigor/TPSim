@@ -1,5 +1,5 @@
 #include "Simulation.hpp"
-#include "EventQueue.hpp"
+#include "TimingWheel.hpp"
 #include "Estimator.hpp"
 #include "Units.hpp"
 #include <iostream>
@@ -24,9 +24,7 @@ Simulation::Simulation(const Module& module, const CellLibrary& lib, const Stimu
 
     // parse cell output boolean expressions
     BooleanParser<std::string::iterator> boolParser;
-    for (auto& t : lib.cells) {
-        std::string cellName = t.first;
-        Cell cell = t.second;
+    for (auto& [cellName, cell] : lib.cells) {
         for (unsigned int outIdx = 0; outIdx < cell.bitFunctions.size(); outIdx++) {
             std::string boolFunc = cell.bitFunctions[outIdx];
             auto expr = BooleanFunctionVisitor::parseExpression(boolFunc, boolParser);
@@ -36,24 +34,21 @@ Simulation::Simulation(const Module& module, const CellLibrary& lib, const Stimu
 }
 
 boost::tribool Simulation::evaluateCellOutput(const std::string& cellName, const std::string& output, const std::vector<boost::tribool>& input) const {
-    Cell cell = lib.cells.at(cellName);
-    auto outIt = std::find(cell.outputs.begin(), cell.outputs.end(), output);
-    unsigned int outIdx = std::distance(cell.outputs.begin(), outIt);
-    return BooleanFunctionVisitor().evaluateExpression(cellOutputExpressions.at(cellName).at(outIdx), cell.inputs, input);
+    auto outIt = std::find(lib.cells.at(cellName).outputs.begin(), lib.cells.at(cellName).outputs.end(), output);
+    unsigned int outIdx = std::distance(lib.cells.at(cellName).outputs.begin(), outIt);
+    return BooleanFunctionVisitor().evaluateExpression(cellOutputExpressions.at(cellName).at(outIdx), lib.cells.at(cellName).inputs, input);
 }
 
 double Simulation::computeOutputCapacitance(const std::string& outputWire, boost::tribool newState, double defaultOutputCapacitance) const {
     int affectedGates = 0;
     double outputCap = 0.0;
     for (auto& g : module.gates) {
-        Cell cell = lib.cells.at(g.cell);
-
         auto inputIt = g.net2input.find(outputWire);
         bool affectsGateInput = inputIt != g.net2input.end();
         if (!affectsGateInput) {
             continue;
         }
-        outputCap += cell.pinCapacitance.at(inputIt->second);
+        outputCap += lib.cells.at(g.cell).pinCapacitance.at(inputIt->second);
         affectedGates++;
     }
 
@@ -67,90 +62,89 @@ double Simulation::computeOutputCapacitance(const std::string& outputWire, boost
 void Simulation::run() {
     notifyOnBegin();
 
-    // initiailize event queue with external stimuli
-    EventQueue events(stim, module.inputs, cfg.clockPeriod, cfg.stimuliSlope);
+    // initiailize timing wheel with external input stimuli
+    TimingWheel wheel(1000, stim, cfg.stimuliSlope, cfg.clockPeriod); // calculate the critical path delay before defining the timing wheel
 
     // simulation loop
     std::unordered_map<std::string, Event> prevGateEvents;
-    unsigned long prevTime = events.top().tick;
-
-    while (!events.empty()) {
-        Event ev = events.top();
-        events.pop();
-
-        if (ev.tick > cfg.timeLimit) { // ignore events happening after simulation stop time
-            continue;
-        }
-
-        wireStates[ev.wire] = ev.value;
-
-        // handles gates affected by the event
-        for (auto& g : module.gates) {
-            Cell cell = lib.cells.at(g.cell);
-
-            auto inputIt = g.net2input.find(ev.wire);
-            bool affectsGateInput = inputIt != g.net2input.end();
-            if (!affectsGateInput) {
+    unsigned long prevTime = wheel.getCurrentEventTick();
+    auto nextEvs = wheel.consumeNextEvents();
+    while (!nextEvs.empty()) {
+        for (const auto& ev : nextEvs) {
+            if (ev.tick > cfg.timeLimit) { // ignore events happening after simulation stop time
                 continue;
             }
 
-            std::string inputPin = inputIt->second;
-            std::vector<tribool> inputStates;
-            for (const std::string& in : cell.inputs) {
-                if (in == inputPin) {
-                    inputStates.push_back(ev.value);
+            wireStates[ev.wire] = ev.value; // update circuit state
+
+            // handles gates affected by the event
+            for (auto& g : module.gates) {
+                auto inputIt = g.net2input.find(ev.wire);
+                bool affectsGateInput = inputIt != g.net2input.end();
+                if (!affectsGateInput) {
                     continue;
                 }
-                std::string inWire = g.input2net.at(in);
-                inputStates.push_back(wireStates.at(inWire));
+
+                std::string inputPin = inputIt->second;
+                std::vector<tribool> inputStates;
+                for (const std::string& in : lib.cells.at(g.cell).inputs) {
+                    if (in == inputPin) {
+                        inputStates.push_back(ev.value);
+                        continue;
+                    }
+                    std::string inWire = g.input2net.at(in);
+                    inputStates.push_back(wireStates.at(inWire));
+                }
+
+                Event prevEvent;
+                try {
+                    prevEvent = prevGateEvents.at(g.name);
+                    prevGateEvents[g.name] = ev;
+                }
+                catch (const std::out_of_range& e) {
+                    prevEvent = Event{"", 0.0, boost::indeterminate, 0};
+                    prevGateEvents[g.name] = ev;
+                }
+
+                // compute new event
+                std::string outputPin = lib.cells.at(g.cell).outputs[0]; // only a single output is currently supported!
+                std::string outputWire;
+                try {
+                    outputWire = g.output2net.at(outputPin);
+                }
+                catch (const std::out_of_range& e) {
+                    throw std::runtime_error("could not find output pin \'" + outputPin + "\' in instance \'" + g.name + "\' of type \'" + g.cell + "\'.");
+                }
+                tribool result = evaluateCellOutput(g.cell, outputPin, inputStates);
+                tribool outputState;
+                try {
+                    outputState = wireStates.at(outputWire);
+                }
+                catch (const std::out_of_range& e) {
+                    throw std::runtime_error("could not find wire \'" + outputWire + "\' (used in instance \'" + g.name + "\' of type \'" + g.cell + "\').");
+                }
+                if ((outputState == result) || (indeterminate(outputState) && indeterminate(result))) {
+                    continue;
+                }
+
+                // estimate Event parameters
+                double outputCap = computeOutputCapacitance(outputWire, result, cfg.outputCapacitance);
+                Arc arc{inputPin, outputPin};
+                double delay = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(g.cell).delay, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
+                double inputSlope = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(g.cell).outputSlope, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
+                unsigned long resultingTick = ev.tick + Units::timeToTick(delay, lib.timeUnit, cfg.timescale);
+                Event newEv{outputWire, inputSlope, result, resultingTick};
+                wheel.scheduleEvent(newEv);
+
+                notifyOnNewEvent(prevEvent, ev, newEv, g.cell, arc, inputStates, outputCap);
             }
 
-            Event prevEvent;
-            try {
-                prevEvent = prevGateEvents.at(g.name);
-                prevGateEvents[g.name] = ev;
-            }
-            catch (const std::out_of_range& e) {
-                prevEvent = Event{"", 0.0, boost::indeterminate, 0};
-                prevGateEvents[g.name] = ev;
-            }
+            notifyAfterHandlingEvent(ev, prevTime);
 
-            // compute new event
-            std::string outputPin = cell.outputs[0]; // only a single output is supported!
-            std::string outputWire;
-            try {
-                outputWire = g.output2net.at(outputPin);
-            }
-            catch (const std::out_of_range& e) {
-                throw std::runtime_error("could not find output pin \'" + outputPin + "\' in instance \'" + g.name + "\' of type \'" + g.cell + "\'.");
-            }
-            tribool result = evaluateCellOutput(cell.name, outputPin, inputStates);
-            tribool outputState;
-            try {
-                outputState = wireStates.at(outputWire);
-            }
-            catch (const std::out_of_range& e) {
-                throw std::runtime_error("could not find wire \'" + outputWire + "\' (used in instance \'" + g.name + "\' of type \'" + g.cell + "\').");
-            }
-            if ((outputState == result) || (indeterminate(outputState) && indeterminate(result))) {
-                continue;
-            }
-
-            // estimate Event parameters
-            double outputCap = computeOutputCapacitance(outputWire, result, cfg.outputCapacitance);
-            Arc arc{inputPin, outputPin};
-            double delay = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).delay, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
-            double inputSlope = indeterminate(result) ? 0.0 : Estimator::estimate(lib.cells.at(cell.name).outputSlope, arc, ev.inputSlope, outputCap, result ? true : false, cfg.allowExtrapolation);
-            unsigned long resultingTick = ev.tick + Units::timeToTick(delay, lib.timeUnit, cfg.timescale);
-            Event newEv{outputWire, inputSlope, result, resultingTick};
-            events.push(newEv);
-
-            notifyOnNewEvent(prevEvent, ev, newEv, cell.name, arc, inputStates, outputCap);
+            prevTime = ev.tick;
         }
 
-        notifyAfterHandlingEvent(ev, prevTime);
-
-        prevTime = ev.tick;
+        nextEvs = wheel.consumeNextEvents();
     }
 
     notifyOnEnd();
@@ -197,7 +191,6 @@ void Simulation::notifyOnBegin() {
 void Simulation::notifyOnNewEvent(const Event& prevInputEvent, const Event& inputEvent, const Event& outputEvent, const std::string& cellName, const Arc& arc, const std::vector<boost::tribool>& inputStates, double outputCapacitance) {
     for (auto s : newEventSubscribers) {
         s->updateOnNewEvent(this, prevInputEvent, inputEvent,outputEvent, cellName, arc, inputStates, outputCapacitance);
-
     }
 }
 

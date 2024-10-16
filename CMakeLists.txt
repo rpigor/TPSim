@@ -53,7 +53,7 @@ add_executable(TPSimTest
                 ${TESTFILES}
                 ${PROJECT_SOURCE_DIR}/src/Estimator.cpp
                 ${PROJECT_SOURCE_DIR}/src/Units.cpp
-                ${PROJECT_SOURCE_DIR}/src/EventQueue.cpp
+                ${PROJECT_SOURCE_DIR}/src/TimingWheel.cpp
                 ${PROJECT_SOURCE_DIR}/src/BooleanParser.cpp
                 ${PROJECT_SOURCE_DIR}/src/liberty/LibertyLibrary.cpp)
 set_target_properties(TPSimTest PROPERTIES OUTPUT_NAME "test")
