@@ -63,7 +63,7 @@ void Simulation::run() {
     notifyOnBegin();
 
     // initiailize timing wheel with external input stimuli
-    TimingWheel wheel(1000, stim, cfg.stimuliSlope, cfg.clockPeriod); // calculate the critical path delay before defining the timing wheel
+    TimingWheel wheel(cfg.wheelSize, stim, cfg.stimuliSlope, cfg.clockPeriod); // calculate the critical path delay before defining the timing wheel
 
     // simulation loop
     std::unordered_map<std::string, Event> prevGateEvents;

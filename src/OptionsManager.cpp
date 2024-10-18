@@ -19,6 +19,7 @@ void OptionsManager::parseCLI(int argc, const char* argv[]) {
         ("power-report",            po::value<std::string>(),                                       "Power report file")
         ("timescale",               po::value<std::string>(&timescale)->default_value("ps"),        "Simulation timescale")
         ("period",                  po::value<unsigned long>(&period)->default_value(10000),        "Input stimuli clock period")
+        ("wheel-size",              po::value<std::size_t>(&wheelSize)->default_value(1000),        "Size of the timing wheel (ideally, close to the critical path delay)")
         ("input-slope",             po::value<double>(&stimuliSlope)->default_value(0.0),           "Input stimuli slope")
         ("output-capacitance",      po::value<double>(&outputCapacitance)->default_value(0.0),      "Output capacitance")
         ("timeout",                 po::value<unsigned long>(&timeout)->default_value(ULONG_MAX),   "Simulation time limit")
@@ -123,6 +124,10 @@ const std::string& OptionsManager::getTimescale() const {
 
 unsigned long OptionsManager::getPeriod() const {
     return period;
+}
+
+std::size_t OptionsManager::getWheelSize() const {
+    return wheelSize;
 }
 
 double OptionsManager::getStimuliSlope() const {

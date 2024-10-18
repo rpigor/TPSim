@@ -15,6 +15,7 @@
 struct SimulationConfig {
     const std::string& timescale;
     unsigned long clockPeriod;
+    std::size_t wheelSize;
     double stimuliSlope;
     double outputCapacitance;
     unsigned long timeLimit;

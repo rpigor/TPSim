@@ -37,6 +37,7 @@ private:
     std::filesystem::path powerReportFilePath;
     std::string timescale;
     unsigned long period;
+    std::size_t wheelSize;
     double stimuliSlope;
     double outputCapacitance;
     unsigned long timeout;
@@ -60,6 +61,7 @@ public:
     const std::filesystem::path& getPowerReportFilePath() const;
     const std::string& getTimescale() const;
     unsigned long getPeriod() const;
+    std::size_t getWheelSize() const;
     double getStimuliSlope() const;
     double getOutputCapacitance() const;
     unsigned long getTimeout() const;

@@ -64,6 +64,7 @@ int main(const int argc, const char* argv[]) {
     SimulationConfig cfg{
         opt.getTimescale(),
         opt.getPeriod(),
+        opt.getWheelSize(),
         opt.getStimuliSlope(),
         opt.getOutputCapacitance(),
         opt.getTimeout(),
