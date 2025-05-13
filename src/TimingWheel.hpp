@@ -7,6 +7,13 @@
 #include <string>
 #include <list>
 #include <unordered_map>
+#include <memory>
+
+struct CmpEventSharedPtr {
+    bool operator()(std::shared_ptr<Event> lhs, std::shared_ptr<Event> rhs) const {
+        return lhs->tick > rhs->tick;
+    }
+};
 
 class TimingWheel {
 private:
@@ -15,8 +22,9 @@ private:
     std::size_t currentTick;
     std::size_t currentIdx;
 
-    std::vector<std::list<Event>> wheel;
-    std::priority_queue<Event, std::vector<Event>, std::greater<Event>> queue;
+    std::vector<std::list<std::shared_ptr<Event>>> wheel;
+    std::priority_queue<std::shared_ptr<Event>, std::vector<std::shared_ptr<Event>>, CmpEventSharedPtr> queue;
+    std::unordered_map<std::string, std::shared_ptr<Event>> pendingEventPerNet;
 
 public:
 

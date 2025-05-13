@@ -71,6 +71,10 @@ void Simulation::run() {
     auto nextEvs = wheel.consumeNextEvents();
     while (!nextEvs.empty()) {
         for (const auto& ev : nextEvs) {
+            if (ev.canceled) { // ignore aborted events
+                continue;
+            }
+
             if (ev.tick > cfg.timeLimit) { // ignore events happening after simulation stop time
                 continue;
             }

@@ -9,6 +9,16 @@ struct Event {
     double inputSlope;
     boost::tribool value;
     unsigned long tick;
+    bool canceled;
+
+    Event() {
+
+    }
+
+    Event(const std::string& wire, double inputSlope, boost::tribool value, unsigned long tick, bool canceled = false)
+    : wire(wire), inputSlope(inputSlope), value(value), tick(tick), canceled(canceled) {
+
+    }
 
     bool operator<(const Event& ev) const {
         return std::tie(tick, inputSlope) < std::tie(ev.tick, ev.inputSlope);
